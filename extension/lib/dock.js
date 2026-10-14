@@ -627,7 +627,8 @@ export class Dock {
             return;
         }
         const monitor = this.monitor;
-        const [w, h] = this.vertical ? [6, 96] : [96, 6];
+        const length = this._settings.longHandle ? 192 : 96;
+        const [w, h] = this.vertical ? [6, length] : [length, 6];
         const gap = 8;
         let x, y;
         if (this.side === 'bottom') {

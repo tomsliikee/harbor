@@ -15,7 +15,7 @@ import {Popup} from './lib/popup.js';
 import {SettingsStore} from './lib/settings.js';
 import {Status} from './lib/status.js';
 import {loadSymbols, unloadSymbols} from './lib/symbols.js';
-import {ThemeController} from './lib/theme.js';
+import {SchemeView, ThemeController} from './lib/theme.js';
 
 const DASH_TO_DOCK = 'dash-to-dock@micxgx.gmail.com';
 
@@ -28,12 +28,14 @@ export default class HarborExtension extends Extension {
         this._settings = new SettingsStore(settings => this._settingsChanged(settings));
         setMotion(this._settings.current);
         this._theme = new ThemeController(this._settings.current.colour);
+        // The dock and what it opens may stay light while the desktop is dark.
+        this._dockTheme = new SchemeView(this._theme, this._settings.current.lightDock);
         this._model = new Model();
         this._places = new Places();
-        this._status = new Status(this._theme);
+        this._status = new Status(this._dockTheme);
         this._power = new Power();
         this._docks = new Docks({
-            theme: this._theme,
+            theme: this._dockTheme,
             model: this._model,
             places: this._places,
             status: this._status,
@@ -88,6 +90,8 @@ export default class HarborExtension extends Extension {
         this._indicator = null;
         this._model.destroy();
         this._model = null;
+        this._dockTheme.destroy();
+        this._dockTheme = null;
         this._theme.destroy();
         this._theme = null;
         this._settings.destroy();
@@ -154,6 +158,7 @@ export default class HarborExtension extends Extension {
     _settingsChanged(settings) {
         setMotion(settings);
         this._theme.setColour(settings.colour);
+        this._dockTheme.setForceLight(settings.lightDock);
         this._popup.setSettings(settings);
         this._docks.setSettings(settings);
         this._render();

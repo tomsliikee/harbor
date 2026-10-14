@@ -27,6 +27,8 @@ const CAPTIONS = {
 // [key, title, note]; a key of "handles" means the chosen style's handle.
 const LOOK_SWITCHES = [
     ['symbolicIcons', 'Symbolic icons', 'Flat symbols in the colours of the dock. Right-click an app to choose its symbol.'],
+    ['inkFocus', 'Ink focus', 'The focused app is black, in dark mode white. Off, it takes the colour of the style.'],
+    ['lightDock', 'Light dock', 'The dock stays light when the desktop is dark.'],
     ['seeThrough', 'See-through', 'Lets the wallpaper show through the dock.'],
     ['expressiveMotion', 'Expressive motion', 'The dock rises and spreads out, icons pop up, shapes glide and morph.'],
 ];
@@ -165,6 +167,8 @@ export class Popup {
         handle.add_child(this._switchRow('handles', 'Handle when away', 'A thin grip stays at the edge while this style is away.'));
         this._hoverRow = this._switchRow('handleHover', 'Show on hover', 'Resting on the handle brings the dock; off, it takes a click.');
         handle.add_child(this._hoverRow);
+        this._longRow = this._switchRow('longHandle', 'Long handle', 'The handle is twice as long, so it is easier to find.');
+        handle.add_child(this._longRow);
         tile.add_child(handle);
 
         segmented('position', POSITIONS, 'Where the dock sits');
@@ -234,6 +238,7 @@ export class Popup {
             swatch.setSelected(colour === settings.colour);
         // What only matters with something else on.
         this._hoverRow.visible = settings.handles[settings.style];
+        this._longRow.visible = settings.handles[settings.style];
         this._motionBlock.visible = settings.expressiveMotion;
         this._motionSwitches.visible = settings.expressiveMotion;
     }

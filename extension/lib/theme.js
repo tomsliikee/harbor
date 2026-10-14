@@ -64,6 +64,59 @@ export class ThemeController extends EventEmitter {
     }
 }
 
+// The theme as the dock sees it: the same colour style, but kept light
+// with "Light dock" while the desktop is dark. Same API as the controller.
+export class SchemeView extends EventEmitter {
+    constructor(theme, forceLight = false) {
+        super();
+        this._theme = theme;
+        this._forceLight = forceLight;
+        theme.connectObject('changed', () => this.emit('changed'), this);
+    }
+
+    setForceLight(on) {
+        if (on === this._forceLight)
+            return;
+        const before = this.scheme;
+        this._forceLight = on;
+        if (this.scheme !== before)
+            this.emit('changed');
+    }
+
+    get scheme() {
+        return this._forceLight ? 'light' : this._theme.scheme;
+    }
+
+    get colour() {
+        return this._theme.colour;
+    }
+
+    get animations() {
+        return this._theme.animations;
+    }
+
+    get roles() {
+        return palette(this.colour, this.scheme);
+    }
+
+    rolesIn(scheme) {
+        return palette(this.colour, scheme);
+    }
+
+    get warn() {
+        return warn[this.scheme];
+    }
+
+    get key() {
+        return `${this.colour}-${this.scheme}`;
+    }
+
+    destroy() {
+        this._theme.disconnectObject(this);
+        this.disconnectAll();
+    }
+}
+
 // Swaps the colour class of a root actor; the stylesheet does the rest.
 export function setScheme(actor, key) {
     for (const name of (actor.get_style_class_name() ?? '').split(' ')) {
