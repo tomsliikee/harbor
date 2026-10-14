@@ -32,6 +32,7 @@ export class Model extends EventEmitter {
         this._favorites = AppFavorites.getAppFavorites();
         this._lastUsed = new Map();
         this._pending = 0;
+        this._geometry = 0;
         this._windowSignals = new Map();
         this.snapshot = null;
 
@@ -75,7 +76,10 @@ export class Model extends EventEmitter {
     destroy() {
         if (this._pending)
             global.compositor.get_laters().remove(this._pending);
+        if (this._geometry)
+            global.compositor.get_laters().remove(this._geometry);
         this._pending = 0;
+        this._geometry = 0;
         for (const window of this._windowSignals.keys())
             window.disconnectObject(this);
         this._windowSignals.clear();
@@ -102,8 +106,22 @@ export class Model extends EventEmitter {
             'notify::title', () => this.queue(),
             'notify::demands-attention', () => this.queue(),
             'notify::urgent', () => this.queue(),
-            'notify::skip-taskbar', () => this.queue(), this);
+            'notify::skip-taskbar', () => this.queue(),
+            'position-changed', () => this._queueGeometry(),
+            'size-changed', () => this._queueGeometry(),
+            'notify::maximized-vertically', () => this._queueGeometry(), this);
         this.queue();
+    }
+
+    // Windows that only move tell the docks, not everyone.
+    _queueGeometry() {
+        if (this._geometry)
+            return;
+        this._geometry = global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
+            this._geometry = 0;
+            this.emit('geometry');
+            return false;
+        });
     }
 
     _focusChanged() {

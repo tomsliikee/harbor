@@ -153,6 +153,56 @@
     padding: 0 4px;
 }
 
+/* The dock; sizes and colours that scale are set in code. */
+
+.harbor-floating {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16);
+}
+
+.harbor-item {
+    padding: 0;
+    border-radius: 16px;
+}
+
+.harbor-item-box {
+    spacing: 3px;
+}
+
+.harbor-tooltip {
+    padding: 6px 12px;
+    spacing: 4px;
+    border-radius: 999px;
+}
+
+/* Menus that open from the dock */
+
+.harbor-menu-content {
+    width: 264px;
+    padding: 12px;
+    spacing: 8px;
+}
+
+.harbor-menu-head {
+    padding: 4px 8px 0 8px;
+    spacing: 2px;
+}
+
+.harbor-menu-row {
+    padding: 12px 16px;
+}
+
+.harbor-group-20 .harbor-row-first {
+    border-radius: 20px 20px 8px 8px;
+}
+
+.harbor-group-20 .harbor-row-last {
+    border-radius: 8px 8px 20px 20px;
+}
+
+.harbor-group-20 .harbor-row-only {
+    border-radius: 20px;
+}
+
 /* themed */
 
 
@@ -224,4 +274,22 @@
 .harbor-scheme .harbor-swatch,
 .harbor-scheme .harbor-pinned {
     background-color: transparent;
+}
+
+.harbor-scheme.harbor-tooltip {
+    background-color: $on;
+    color: $bright;
+}
+
+.harbor-scheme .harbor-row.harbor-selected {
+    background-color: $pc;
+    color: $onPc;
+}
+
+.harbor-scheme .harbor-row-subtitle {
+    color: $onVar;
+}
+
+.harbor-scheme .harbor-selected .harbor-row-subtitle {
+    color: $onPc;
 }

@@ -155,6 +155,56 @@
     padding: 0 4px;
 }
 
+/* The dock; sizes and colours that scale are set in code. */
+
+.harbor-floating {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16);
+}
+
+.harbor-item {
+    padding: 0;
+    border-radius: 16px;
+}
+
+.harbor-item-box {
+    spacing: 3px;
+}
+
+.harbor-tooltip {
+    padding: 6px 12px;
+    spacing: 4px;
+    border-radius: 999px;
+}
+
+/* Menus that open from the dock */
+
+.harbor-menu-content {
+    width: 264px;
+    padding: 12px;
+    spacing: 8px;
+}
+
+.harbor-menu-head {
+    padding: 4px 8px 0 8px;
+    spacing: 2px;
+}
+
+.harbor-menu-row {
+    padding: 12px 16px;
+}
+
+.harbor-group-20 .harbor-row-first {
+    border-radius: 20px 20px 8px 8px;
+}
+
+.harbor-group-20 .harbor-row-last {
+    border-radius: 8px 8px 20px 20px;
+}
+
+.harbor-group-20 .harbor-row-only {
+    border-radius: 20px;
+}
+
 .harbor-scheme-blue-light.harbor-peek {
     background-color: #edecfb;
     color: #191b25;
@@ -223,6 +273,24 @@
 .harbor-scheme-blue-light .harbor-swatch,
 .harbor-scheme-blue-light .harbor-pinned {
     background-color: transparent;
+}
+
+.harbor-scheme-blue-light.harbor-tooltip {
+    background-color: #191b25;
+    color: #fbf8ff;
+}
+
+.harbor-scheme-blue-light .harbor-row.harbor-selected {
+    background-color: #dee1ff;
+    color: #0033c2;
+}
+
+.harbor-scheme-blue-light .harbor-row-subtitle {
+    color: #444654;
+}
+
+.harbor-scheme-blue-light .harbor-selected .harbor-row-subtitle {
+    color: #0033c2;
 }
 
 .harbor-scheme-blue-dark.harbor-peek {
@@ -295,6 +363,24 @@
     background-color: transparent;
 }
 
+.harbor-scheme-blue-dark.harbor-tooltip {
+    background-color: #e2e1ef;
+    color: #373843;
+}
+
+.harbor-scheme-blue-dark .harbor-row.harbor-selected {
+    background-color: #0033c2;
+    color: #dee1ff;
+}
+
+.harbor-scheme-blue-dark .harbor-row-subtitle {
+    color: #c5c5d6;
+}
+
+.harbor-scheme-blue-dark .harbor-selected .harbor-row-subtitle {
+    color: #dee1ff;
+}
+
 .harbor-scheme-violet-light.harbor-peek {
     background-color: #f3ebfa;
     color: #1d1a24;
@@ -363,6 +449,24 @@
 .harbor-scheme-violet-light .harbor-swatch,
 .harbor-scheme-violet-light .harbor-pinned {
     background-color: transparent;
+}
+
+.harbor-scheme-violet-light.harbor-tooltip {
+    background-color: #1d1a24;
+    color: #fef7ff;
+}
+
+.harbor-scheme-violet-light .harbor-row.harbor-selected {
+    background-color: #eaddff;
+    color: #5a00c6;
+}
+
+.harbor-scheme-violet-light .harbor-row-subtitle {
+    color: #4a4453;
+}
+
+.harbor-scheme-violet-light .harbor-selected .harbor-row-subtitle {
+    color: #5a00c6;
 }
 
 .harbor-scheme-violet-dark.harbor-peek {
@@ -435,6 +539,24 @@
     background-color: transparent;
 }
 
+.harbor-scheme-violet-dark.harbor-tooltip {
+    background-color: #e8dfee;
+    color: #3c3743;
+}
+
+.harbor-scheme-violet-dark .harbor-row.harbor-selected {
+    background-color: #5a00c6;
+    color: #eaddff;
+}
+
+.harbor-scheme-violet-dark .harbor-row-subtitle {
+    color: #ccc3d5;
+}
+
+.harbor-scheme-violet-dark .harbor-selected .harbor-row-subtitle {
+    color: #eaddff;
+}
+
 .harbor-scheme-green-light.harbor-peek {
     background-color: #e6f1e3;
     color: #151e15;
@@ -503,6 +625,24 @@
 .harbor-scheme-green-light .harbor-swatch,
 .harbor-scheme-green-light .harbor-pinned {
     background-color: transparent;
+}
+
+.harbor-scheme-green-light.harbor-tooltip {
+    background-color: #151e15;
+    color: #f2fcee;
+}
+
+.harbor-scheme-green-light .harbor-row.harbor-selected {
+    background-color: #67ff8d;
+    color: #005321;
+}
+
+.harbor-scheme-green-light .harbor-row-subtitle {
+    color: #3e4a3d;
+}
+
+.harbor-scheme-green-light .harbor-selected .harbor-row-subtitle {
+    color: #005321;
 }
 
 .harbor-scheme-green-dark.harbor-peek {
@@ -575,6 +715,24 @@
     background-color: transparent;
 }
 
+.harbor-scheme-green-dark.harbor-tooltip {
+    background-color: #dbe5d7;
+    color: #323c32;
+}
+
+.harbor-scheme-green-dark .harbor-row.harbor-selected {
+    background-color: #005321;
+    color: #67ff8d;
+}
+
+.harbor-scheme-green-dark .harbor-row-subtitle {
+    color: #bdcaba;
+}
+
+.harbor-scheme-green-dark .harbor-selected .harbor-row-subtitle {
+    color: #67ff8d;
+}
+
 .harbor-scheme-orange-light.harbor-peek {
     background-color: #ffe9e3;
     color: #271813;
@@ -643,6 +801,24 @@
 .harbor-scheme-orange-light .harbor-swatch,
 .harbor-scheme-orange-light .harbor-pinned {
     background-color: transparent;
+}
+
+.harbor-scheme-orange-light.harbor-tooltip {
+    background-color: #271813;
+    color: #fff8f6;
+}
+
+.harbor-scheme-orange-light .harbor-row.harbor-selected {
+    background-color: #ffdbd0;
+    color: #832700;
+}
+
+.harbor-scheme-orange-light .harbor-row-subtitle {
+    color: #58423a;
+}
+
+.harbor-scheme-orange-light .harbor-selected .harbor-row-subtitle {
+    color: #832700;
 }
 
 .harbor-scheme-orange-dark.harbor-peek {
@@ -715,6 +891,24 @@
     background-color: transparent;
 }
 
+.harbor-scheme-orange-dark.harbor-tooltip {
+    background-color: #f9ddd4;
+    color: #47352f;
+}
+
+.harbor-scheme-orange-dark .harbor-row.harbor-selected {
+    background-color: #832700;
+    color: #ffdbd0;
+}
+
+.harbor-scheme-orange-dark .harbor-row-subtitle {
+    color: #dfc0b6;
+}
+
+.harbor-scheme-orange-dark .harbor-selected .harbor-row-subtitle {
+    color: #ffdbd0;
+}
+
 .harbor-scheme-pink-light.harbor-peek {
     background-color: #ffe8ec;
     color: #26181b;
@@ -785,6 +979,24 @@
     background-color: transparent;
 }
 
+.harbor-scheme-pink-light.harbor-tooltip {
+    background-color: #26181b;
+    color: #fff8f8;
+}
+
+.harbor-scheme-pink-light .harbor-row.harbor-selected {
+    background-color: #ffd9e1;
+    color: #8f0044;
+}
+
+.harbor-scheme-pink-light .harbor-row-subtitle {
+    color: #564146;
+}
+
+.harbor-scheme-pink-light .harbor-selected .harbor-row-subtitle {
+    color: #8f0044;
+}
+
 .harbor-scheme-pink-dark.harbor-peek {
     background-color: #2a1c1f;
     color: #f6dce1;
@@ -853,4 +1065,22 @@
 .harbor-scheme-pink-dark .harbor-swatch,
 .harbor-scheme-pink-dark .harbor-pinned {
     background-color: transparent;
+}
+
+.harbor-scheme-pink-dark.harbor-tooltip {
+    background-color: #f6dce1;
+    color: #453538;
+}
+
+.harbor-scheme-pink-dark .harbor-row.harbor-selected {
+    background-color: #8f0044;
+    color: #ffd9e1;
+}
+
+.harbor-scheme-pink-dark .harbor-row-subtitle {
+    color: #ddbfc5;
+}
+
+.harbor-scheme-pink-dark .harbor-selected .harbor-row-subtitle {
+    color: #ffd9e1;
 }

@@ -1,10 +1,14 @@
+import GLib from 'gi://GLib';
+
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import {ExtensionState} from 'resource:///org/gnome/shell/misc/extensionUtils.js';
 
 import * as Actions from './lib/actions.js';
+import {Docks} from './lib/docks.js';
 import {HarborIndicator} from './lib/indicator.js';
 import {Model} from './lib/model.js';
+import {Places} from './lib/places.js';
 import {Popup} from './lib/popup.js';
 import {SettingsStore} from './lib/settings.js';
 import {ThemeController} from './lib/theme.js';
@@ -15,9 +19,20 @@ const DASH_TO_DOCK = 'dash-to-dock@micxgx.gmail.com';
 // any other extension, only GNOME Shell.
 export default class HarborExtension extends Extension {
     enable() {
+        this._idle = 0;
         this._settings = new SettingsStore(settings => this._settingsChanged(settings));
         this._theme = new ThemeController(this._settings.current.colour);
         this._model = new Model();
+        this._places = new Places();
+        this._docks = new Docks({
+            theme: this._theme,
+            model: this._model,
+            places: this._places,
+            status: null,
+            settings: () => this._settings.current,
+            onState: () => this._queueRender(),
+            showWindowList: null,
+        });
 
         this._indicator = new HarborIndicator(this._theme);
         this._popup = new Popup({
@@ -40,11 +55,20 @@ export default class HarborExtension extends Extension {
         Main.panel.addToStatusArea(this.uuid, this._indicator, position, 'right');
 
         this._model.connect('changed', () => this._render());
+        this._model.connect('geometry', () => this._docks.windowsChanged());
+        this._places.connect('changed', () => this._docks.update(this._model.snapshot));
         this._render();
     }
 
     disable() {
         Main.extensionManager.disconnectObject(this);
+        if (this._idle)
+            GLib.source_remove(this._idle);
+        this._idle = 0;
+        this._docks.destroy();
+        this._docks = null;
+        this._places.destroy();
+        this._places = null;
         this._indicator.destroy();
         this._popup = null;
         this._indicator = null;
@@ -57,15 +81,29 @@ export default class HarborExtension extends Extension {
     }
 
     _dockState() {
-        return 'showing';
+        return this._docks?.state ?? 'showing';
     }
 
     _render() {
         // The shell may tear its panel down at exit before Harbor is disabled.
         if (this._indicator._destroyed)
             return;
-        this._indicator.update(this._model.snapshot, this._dockState());
-        this._popup.update(this._model.snapshot);
+        const snapshot = this._model.snapshot;
+        this._docks.update(snapshot);
+        this._indicator.update(snapshot, this._dockState());
+        this._popup.update(snapshot);
+    }
+
+    // A dock that shows or hides changes only the mark, once per round.
+    _queueRender() {
+        if (this._idle || !this._indicator)
+            return;
+        this._idle = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            this._idle = 0;
+            if (this._indicator && !this._indicator._destroyed)
+                this._indicator.update(this._model.snapshot, this._dockState());
+            return GLib.SOURCE_REMOVE;
+        });
     }
 
     _activate(entry) {
@@ -79,6 +117,7 @@ export default class HarborExtension extends Extension {
     _settingsChanged(settings) {
         this._theme.setColour(settings.colour);
         this._popup.setSettings(settings);
+        this._docks.setSettings(settings);
         this._render();
     }
 }
