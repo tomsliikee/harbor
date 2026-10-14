@@ -37,7 +37,7 @@ Harbor sends no notifications, reads nothing from the network and keeps one smal
 - **Minimise Into the Icon:** A window minimises into its app's icon in the dock.
 - **Drag to Arrange:** Drag an icon along the dock to move it, out of the dock to unpin it, or from the app grid into the dock to pin it.
 - **Right-Click Menu:** The app's own actions, a new window, pin or unpin, quit, and **Change symbol**, laid out like the rest of Harbor.
-- **A Mark in the Top Bar:** Two app tiles on a shelf and the number of open windows. Resting the pointer on it shows a small look; a click opens the menu.
+- **A Mark in the Top Bar:** Two app tiles on a shelf, nothing more. Resting the pointer on it shows a small look; a click opens the menu.
 - **Every Monitor:** One dock per screen if you want it, each marking the windows on its own screen.
 - **Five Colour Styles:** **Blue**, **violet**, **green**, **orange** and **pink**, each in light and dark.
 - **Light, Dark and Motion:** Harbor follows GNOME's colour scheme and its animation switch while it runs.
@@ -80,7 +80,7 @@ Every style works at the **left**, **bottom** and **right** edge (*tested* in th
 | :--- | :--- |
 | **Filled shelf** | The dock shows. |
 | **Outlined shelf** | A window keeps the dock away, or it is set to hide. |
-| **Yellow mark and number** | An app wants attention. Nothing else is sent. |
+| **Yellow mark** | An app wants attention. Nothing else is sent. |
 
 ---
 
@@ -329,6 +329,7 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 - **The icons shrink by themselves** when the dock would not fit its edge, the way Dash to Dock does it; it is not a setting.
 - **A side dock leaves out long text:** the loud tile shows only its number, and the group names of **Grouped block** are hidden at the left and right edge.
 - **Status and Window list became one style, Extended bar:** both were the floating bar with one extra each, so they now come together; a saved `status` or `window-list` turns into `extended-bar`.
+- **No number in the top bar:** the count of open windows beside the mark said little at a glance; it stays in the look on hover and in the menu.
 - **Pills that reach beyond the dock** (status sentences, the rail's pill, pebble names) live on a layer that asks for no room, so the dock keeps its own size.
 
 ---

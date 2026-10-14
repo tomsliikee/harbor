@@ -17,7 +17,6 @@ export const ROLES = {
     'metric-l': {size: 34, weight: 800, width: 112, tabular: true},
     'metric-m': {size: 28, weight: 800, width: 112, tabular: true},
     'metric-s': {size: 22, weight: 700, width: 106, tabular: true},
-    'indicator': {size: 14, weight: 800, width: 112, tabular: true},
     'badge-number': {size: 12, weight: 800, width: 112, tabular: true},
     'title-row': {size: 14, weight: 700},
     'body': {size: 14, weight: 400},

@@ -1,5 +1,5 @@
-// The top bar item: Harbor's mark and one number, the open windows. Resting
-// the pointer on it shows a small look; a click opens the menu.
+// The top bar item: Harbor's mark alone. Resting the pointer on it shows a
+// small look; a click opens the menu.
 
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
@@ -10,7 +10,6 @@ import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
 import {HarborMark} from './mark.js';
 import {Peek} from './peek.js';
 import {setScheme} from './theme.js';
-import {text} from './text.js';
 
 // Long enough that crossing the item on the way elsewhere shows nothing.
 const HOVER_DELAY_MS = 300;
@@ -26,9 +25,7 @@ class HarborIndicator extends PanelMenu.Button {
 
         const box = new St.BoxLayout({style_class: 'panel-status-indicators-box harbor-indicator'});
         this._mark = new HarborMark();
-        this._count = text('indicator', {styleClass: 'harbor-indicator-count'});
         box.add_child(this._mark);
-        box.add_child(this._count);
         this.add_child(box);
 
         this.menu.box.add_style_class_name('harbor-popup');
@@ -58,12 +55,7 @@ class HarborIndicator extends PanelMenu.Button {
             return;
         this._snapshot = snapshot;
         this._dockState = dockState;
-        this._count.text = `${snapshot.windowCount}`;
         this._mark.set({shown: dockState === 'showing', attention: snapshot.attention});
-        if (snapshot.attention)
-            this._count.add_style_class_name('harbor-attention');
-        else
-            this._count.remove_style_class_name('harbor-attention');
         this._peek.update(snapshot, dockState);
     }
 

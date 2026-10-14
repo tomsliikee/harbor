@@ -1,4 +1,4 @@
-// The top bar: the mark and number, the look on hover, and the states.
+// The top bar: the mark, the look on hover, and the states.
 export default async function ({indicator, extension, shot, sleep, note, move, moveTo, launch}) {
     await launch('org.gnome.TextEditor.desktop');
     await launch('org.gnome.Ptyxis.desktop');
