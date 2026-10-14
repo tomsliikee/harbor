@@ -64,6 +64,12 @@ export const DEFAULTS = Object.freeze({
     symbolicIcons: true,
     // The symbol chosen for an app: {appId: key}.
     symbols: Object.freeze({}),
+    // The focused app's tile is black (white in dark mode), not primary.
+    inkFocus: true,
+    // The dock stays light when the desktop is dark.
+    lightDock: false,
+    // The handle at the edge is twice as long.
+    longHandle: false,
     // Writes what the dock decides to the journal; not in the menu.
     debug: false,
 });

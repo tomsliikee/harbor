@@ -19,6 +19,10 @@ test('symbols keep only words per app', () => equal(
     parse('{"symbols": {"firefox.desktop": "zen", "x.desktop": 3, "y.desktop": ""}}').symbols, {'firefox.desktop': 'zen'}));
 test('symbols must be an object', () => equal([parse('{"symbols": ["zen"]}').symbols, isValid('symbols', {'a.desktop': 'zen'}),
     isValid('symbols', {'a.desktop': 1}), isValid('symbolicIcons', false)], [{}, true, false, true]));
+test('look switches', () => equal(
+    [DEFAULTS.inkFocus, DEFAULTS.lightDock, DEFAULTS.longHandle, parse('{"lightDock": true, "inkFocus": 1}').lightDock,
+        parse('{"inkFocus": 1}').inkFocus, isValid('longHandle', true), isValid('longHandle', 'yes')],
+    [true, false, false, true, true, true, false]));
 test('handles fall back per style', () => {
     const settings = parse('{"handles": {"pebbles": false, "status": "no"}}');
     equal([settings.handles.pebbles, settings.handles.status, settings.handles['floating-bar']], [false, true, true]);
