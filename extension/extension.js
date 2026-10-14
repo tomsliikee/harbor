@@ -39,6 +39,7 @@ export default class HarborExtension extends Extension {
             status: this._status,
             power: this._power,
             settings: () => this._settings.current,
+            setSymbol: (appId, key) => this._setSymbol(appId, key),
             onState: () => this._queueRender(),
         });
 
@@ -138,6 +139,16 @@ export default class HarborExtension extends Extension {
 
     _checkDashToDock() {
         this._popup.setDashToDock(Main.extensionManager.lookup(DASH_TO_DOCK)?.state === ExtensionState.ACTIVE);
+    }
+
+    // key null: the app goes back to its automatic symbol.
+    _setSymbol(appId, key) {
+        const symbols = {...this._settings.current.symbols};
+        if (key)
+            symbols[appId] = key;
+        else
+            delete symbols[appId];
+        this._settings.set('symbols', symbols);
     }
 
     _settingsChanged(settings) {

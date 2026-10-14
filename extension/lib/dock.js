@@ -312,7 +312,7 @@ export class Dock {
     }
 
     openAppMenu(button) {
-        this._openMenu(appMenu(button, this.side, this.theme));
+        this._openMenu(appMenu(button, this.side, this.theme, {settings: this._settings, onSymbol: this._shared.setSymbol}));
     }
 
     openPlaceMenu(button) {

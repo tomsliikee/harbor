@@ -216,6 +216,15 @@ export class Popup {
     }
 
     setSettings(settings, {animated = true} = {}) {
+        const appearance = {symbolicIcons: settings.symbolicIcons, symbols: settings.symbols};
+        if (JSON.stringify(appearance) !== JSON.stringify(this._appearance)) {
+            // The app tiles are made anew with their new symbols.
+            this._appearance = appearance;
+            this._runningKey = null;
+            this._pinnedKey = null;
+            if (this._snapshot)
+                this.update(this._snapshot);
+        }
         this._styleList.select(settings.style);
         for (const [key, control] of Object.entries(this._segmented))
             control.select(settings[key], {animated});
@@ -314,7 +323,7 @@ export class Popup {
     }
 
     _tile(entry, size) {
-        const tile = appTile(entry.app, size);
+        const tile = appTile(entry.app, size, this._appearance);
         const item = {tile, tone: entry.tone};
         this._tiles.push(item);
         tile.connect('destroy', () => this._tiles.splice(this._tiles.indexOf(item), 1));

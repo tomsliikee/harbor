@@ -47,20 +47,26 @@ export function toneStyle(roles, tone, radius) {
     return `background-color: ${rgba(roles[tone])}; color: ${roles[TONE_TEXT[tone]]}; border-radius: ${radius}px;`;
 }
 
-// size: the tile; iconSize: the icon on it.
-export function appTile(app, {size, iconSize, radius, styleClass = ''}) {
+// size: the tile; iconSize: an app's own icon on it (a symbol is half the
+// tile). settings: for the symbols.
+export function appTile(app, {size, iconSize, radius, styleClass = ''}, settings = {}) {
+    const glyph = settings.symbolicIcons
+        ? appGlyph(app, size, settings)
+        : {icon: app.create_icon_texture(iconSize), tint: null, symbolic: false};
     const tile = new St.Bin({
         style_class: `harbor-app-tile ${styleClass}`,
         width: size,
         height: size,
         x_align: Clutter.ActorAlign.CENTER,
         y_align: Clutter.ActorAlign.CENTER,
-        child: app.create_icon_texture(iconSize),
+        child: glyph.icon,
     });
     tile._harborRadius = radius;
+    tile._harborGlyph = glyph;
     return tile;
 }
 
 export function paintTile(tile, roles, tone) {
     tile.set_style(toneStyle(roles, tone, tile._harborRadius));
+    paintGlyph(tile._harborGlyph, roles[TONE_TEXT[tone]]);
 }

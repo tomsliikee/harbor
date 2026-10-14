@@ -5,7 +5,9 @@ import Shell from 'gi://Shell';
 
 import * as AppFavorites from 'resource:///org/gnome/shell/ui/appFavorites.js';
 
+import {symbolPicker} from './controls/symbolpicker.js';
 import {DockMenu, column, rowGroup} from './menu.js';
+import {symbolKeyFor} from './symbols.js';
 import {text} from './text.js';
 import * as Words from './words.js';
 
@@ -25,13 +27,15 @@ export function move(appId, position) {
     AppFavorites.getAppFavorites().moveFavoriteToPos(appId, position);
 }
 
-export function appMenu(button, side, theme) {
+// settings: the current settings; onSymbol(appId, key) keeps a chosen
+// symbol (null: automatic).
+export function appMenu(button, side, theme, {settings, onSymbol} = {}) {
     const entry = button.item;
     const app = entry.app;
     const menu = new DockMenu(button, side, theme);
-    const close = then => () => {
+    const close = then => (...args) => {
         menu.close();
-        then();
+        then(...args);
     };
 
     const head = column('harbor-menu-head');
@@ -60,7 +64,28 @@ export function appMenu(button, side, theme) {
     if (app.state === Shell.AppState.RUNNING)
         rows.push({title: entry.windows.length > 1 ? `Quit all ${entry.windows.length} windows` : 'Quit', onClick: close(() => app.request_quit())});
     menu.content.add_child(rowGroup(rows));
+    if (settings?.symbolicIcons && onSymbol) {
+        const id = app.get_id();
+        menu.content.add_child(rowGroup([{
+            title: 'Change symbol',
+            onClick: () => showPicker(menu, theme, {
+                appId: id,
+                name: entry.name,
+                chosen: settings.symbols[id] ?? null,
+                automatic: symbolKeyFor(id),
+                onPick: close(key => onSymbol(id, key)),
+            }),
+        }]));
+    }
     return menu;
+}
+
+// The menu turns into the picker in place.
+function showPicker(menu, theme, options) {
+    menu.content.destroy_all_children();
+    const picker = symbolPicker({theme, ...options});
+    menu.content.add_child(picker);
+    picker.search.grab_key_focus();
 }
 
 export function placeMenu(button, side, theme, {onOpen, onEject}) {
