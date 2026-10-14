@@ -491,6 +491,29 @@ export class Style {
         return items;
     }
 
+    // The dock's main bar as the pill it spreads from, in this.actor's
+    // coordinates: {x, y, width, height, radius, color, alpha}. The dock
+    // opens out of its handle into this pill and closes back from it. A
+    // style without bars uses its body, see-through. Null while nothing is
+    // laid out.
+    seedPill() {
+        const area = ghost => ghost.rect.width * ghost.rect.height;
+        const main = this.visibleBars().filter(ghost => ghost.rect).sort((a, b) => area(b) - area(a))[0];
+        const r = main?.rect ?? rectIn(this.body, this.actor);
+        if (!r || r.width <= 0 || r.height <= 0)
+            return null;
+        const vertical = this.host.vertical;
+        const along = vertical ? r.height : r.width;
+        const across = vertical ? r.width : r.height;
+        const length = Math.min(along, across * 1.6);
+        const pill = vertical
+            ? {x: r.x, y: r.y + (r.height - length) / 2, width: across, height: length}
+            : {x: r.x + (r.width - length) / 2, y: r.y, width: length, height: across};
+        // Without a bar the pill is only a passing shape: the twin fades
+        // into the items as they pop up, and out of them as they go.
+        return {...pill, radius: across / 2, color: this.barColor, alpha: main ? this.host.barAlpha : 0};
+    }
+
     // Time between two items popping up, at normal speed.
     get itemStep() {
         return 25;

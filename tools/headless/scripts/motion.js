@@ -3,12 +3,14 @@
 // and an app that wants attention.
 //
 //   HARBOR_ONLY="floating-bar pebbles" limits the styles.
+//   HARBOR_HANDLES=on keeps the handles, HARBOR_LONG=on makes them long,
+//   HARBOR_SIDE=left|right moves the dock.
 import GLib from 'gi://GLib';
 
 const SLOW = 8;
 // Real milliseconds at 8× slow motion; about an eighth of that at normal.
 const APPEAR = [0, 400, 800, 1300, 1900, 2700, 3800, 6400];
-const GO = [0, 600, 1200, 1800, 2500, 3200];
+const GO = [0, 600, 1200, 1800, 2500, 3200, 3600, 4200];
 
 export default async function ({extension, shot, sleep, note, moveTo, move, click, launch, set}) {
     const choreo = await import(`file://${extension.path}/lib/choreo.js`);
@@ -18,7 +20,10 @@ export default async function ({extension, shot, sleep, note, moveTo, move, clic
     await launch('org.gnome.TextEditor.desktop');
     moveTo(640, 200);
     set('whenWindowClose', 'hide');
-    set('handles', Object.fromEntries(Object.keys(extension._settings.current.handles).map(id => [id, false])));
+    const handles = GLib.getenv('HARBOR_HANDLES') === 'on';
+    set('handles', Object.fromEntries(Object.keys(extension._settings.current.handles).map(id => [id, handles])));
+    set('longHandle', GLib.getenv('HARBOR_LONG') === 'on');
+    set('position', GLib.getenv('HARBOR_SIDE') ?? 'bottom');
     await sleep(1500);
 
     const only = (GLib.getenv('HARBOR_ONLY') ?? '').split(' ').filter(Boolean);

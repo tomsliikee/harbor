@@ -16,6 +16,7 @@ import {appMenu, move, pin, placeMenu, unpin} from './appmenu.js';
 import {SPRINGS, expressive, normal, run, spring, springShare, stretch} from './choreo.js';
 import {debug} from './debug.js';
 import {anyOverlaps, darkOn, fromCenter} from './layout.js';
+import {mix, rgba} from './palettes.js';
 import {STATE_MS, animationsOn, ease} from './motion.js';
 import * as Places from './places.js';
 import {ICON_PX} from './settings.js';
@@ -31,6 +32,7 @@ const EDGE_MS = 200;
 const HANDLE_MS = 150;
 // How often the handle looks at what lies around it while it shows.
 const HANDLE_LOOK_MS = 1500;
+const HANDLE_SHADOW = '0 0 2px rgba(0,0,0,0.18)';
 
 Gio._promisify(Shell.Screenshot.prototype, 'pick_color');
 // How long the dock stays after the pointer has left it.
@@ -40,21 +42,26 @@ const BASE_ICON = 48;
 // "See-through", as in Ledge.
 const SEE_THROUGH = 0.78;
 
-// Appearing, at normal speed: the dock rises, its bars spread, then the
-// items pop up from the middle outwards; groups follow one another.
+// Appearing, at normal speed: the handle rises and swells into the dock's
+// pill, the bars spread, then the items pop up from the middle outwards;
+// groups follow one another.
+const SEED_MS = 240;
 const SPREAD_AT = 90;
 const ITEMS_AT = 150;
 const GROUP_STEP = 90;
 const OVERLAY_AT = 260;
-// Going: the reverse, without swinging, in about two thirds of the time.
+// Going: the reverse, without swinging; the pill sinks and shrinks back
+// into the handle.
 const GO_ITEM_MS = 120;
 const GO_ITEM_STEP = 14;
 const GO_BARS_AT = 90;
 const GO_BARS_MS = 170;
-const GO_SINK_AT = 190;
-const GO_SINK_MS = 150;
+const GO_SEED_MS = 230;
 
 const easeIn = t => t * t * t;
+const easeOut = t => 1 - (1 - t) ** 3;
+const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+const lerp = (a, b, t) => a + (b - a) * t;
 const clamp = t => Math.max(0, Math.min(1, t));
 
 export class Dock {
@@ -100,6 +107,10 @@ export class Dock {
         this._handle.connect('clicked', () => this.reveal());
         this._handle.connect('notify::hover', () => this._handleHovered());
         Main.layoutManager.addChrome(this._handle);
+        // The handle's twin: the dock opens out of it and closes back into
+        // it, so the handle seems to become the dock.
+        this._seed = new St.Widget({reactive: false, visible: false});
+        Main.layoutManager.addChrome(this._seed);
         // A strip one pixel deep along the edge under the dock: resting on
         // it brings the dock back, no push needed.
         this._edge = new St.Widget({reactive: true, visible: false});
@@ -625,25 +636,32 @@ export class Dock {
         return Boolean(this._style) && !this.shown && !Main.overview.visible && this._allowedVisible();
     }
 
+    // Where the handle stands, whether it shows or not: {x, y, width, height}.
+    _handleRect() {
+        const monitor = this.monitor;
+        const length = this._settings.longHandle ? 192 : 96;
+        const [width, height] = this.vertical ? [6, length] : [length, 6];
+        const gap = 8;
+        if (this.side === 'bottom')
+            return {x: monitor.x + Math.round((monitor.width - width) / 2), y: monitor.y + monitor.height - height - gap, width, height};
+        const y = monitor.y + Math.round((monitor.height - height) / 2);
+        const x = this.side === 'left' ? monitor.x + gap : monitor.x + monitor.width - width - gap;
+        return {x, y, width, height};
+    }
+
+    get _handleInk() {
+        return this._handleDark ? '#000000' : '#ffffff';
+    }
+
     _syncHandle() {
-        if (!this._handleWanted()) {
+        // While the dock closes into the handle, its twin stands in for it.
+        if (!this._handleWanted() || this._closing) {
             this._lookAround(false);
             this._handle.visible = false;
             this._handle.set_scale(1, 1);
             return;
         }
-        const monitor = this.monitor;
-        const length = this._settings.longHandle ? 192 : 96;
-        const [w, h] = this.vertical ? [6, length] : [length, 6];
-        const gap = 8;
-        let x, y;
-        if (this.side === 'bottom') {
-            x = monitor.x + Math.round((monitor.width - w) / 2);
-            y = monitor.y + monitor.height - h - gap;
-        } else {
-            y = monitor.y + Math.round((monitor.height - h) / 2);
-            x = this.side === 'left' ? monitor.x + gap : monitor.x + monitor.width - w - gap;
-        }
+        const {x, y, width: w, height: h} = this._handleRect();
         this._handle.set_position(x, y);
         this._handle.set_size(w, h);
         this._paintHandle();
@@ -653,8 +671,7 @@ export class Dock {
 
     // White on almost everything, black on white or nearly white.
     _paintHandle() {
-        const ink = this._handleDark ? '#000000' : '#ffffff';
-        this._handle.set_style(`background-color: ${ink}; border-radius: 3px; box-shadow: 0 0 2px rgba(0,0,0,0.18);`);
+        this._handle.set_style(`background-color: ${this._handleInk}; border-radius: 3px; box-shadow: ${HANDLE_SHADOW};`);
     }
 
     // While the handle shows it reads the screen beside it now and then,
@@ -672,14 +689,15 @@ export class Dock {
         }
     }
 
-    async _lookUnderHandle() {
+    // force: also while the handle is hidden, so a closing dock already
+    // turns into the right colour.
+    async _lookUnderHandle({force = false} = {}) {
         const handle = this._handle;
-        if (this._looking || !handle.visible || handle.hover)
+        if (this._looking || handle.hover || !(handle.visible || force))
             return;
         this._looking = true;
         try {
-            const [x, y] = handle.get_position();
-            const [w, h] = handle.get_size();
+            const {x, y, width: w, height: h} = this._handleRect();
             const m = this.monitor;
             // Just outside the handle: along its long sides and past its ends.
             const points = this.vertical
@@ -699,7 +717,8 @@ export class Dock {
             const dark = darkOn(colors);
             if (!this._gone && dark !== Boolean(this._handleDark)) {
                 this._handleDark = dark;
-                this._paintHandle();
+                if (handle.visible)
+                    this._paintHandle();
             }
         } catch (e) {
             debug(this, `handle colour: ${e.message}`);
@@ -842,6 +861,49 @@ export class Dock {
     _stopChoreo() {
         this._choreo?.stop();
         this._choreo = null;
+        this._seed.visible = false;
+        if (this._closing) {
+            this._closing = false;
+            this._syncHandle();
+        }
+    }
+
+    // The handle as a shape the twin can take: its place, ink and corners;
+    // invisible when this style shows no handle.
+    _handleShape() {
+        const on = Boolean(this._settings.handles?.[this._settings.style]);
+        return {...this._handleRect(), radius: 3, color: this._handleInk, alpha: on ? 1 : 0};
+    }
+
+    // The dock's pill on the screen, where it stands when shown; null while
+    // the dock is not laid out.
+    _pillShape() {
+        const style = this._style;
+        const pill = style?.seedPill();
+        const inner = style && rectIn(style.actor, this._container);
+        if (!pill || !inner)
+            return null;
+        const [x, y] = this._container.get_position();
+        return {...pill, x: x + inner.x + pill.x, y: y + inner.y + pill.y};
+    }
+
+    // Draws the twin `t` of the way from one shape to the other.
+    _drawSeed(from, to, t) {
+        const now = {
+            x: lerp(from.x, to.x, t),
+            y: lerp(from.y, to.y, t),
+            width: lerp(from.width, to.width, t),
+            height: lerp(from.height, to.height, t),
+            radius: lerp(from.radius, to.radius, t),
+            color: mix(from.color, to.color, t),
+            alpha: lerp(from.alpha, to.alpha, t),
+        };
+        this._seedNow = now;
+        const seed = this._seed;
+        seed.set_position(Math.round(now.x), Math.round(now.y));
+        seed.set_size(Math.max(1, Math.round(now.width)), Math.max(1, Math.round(now.height)));
+        seed.set_style(`background-color: ${rgba(now.color, now.alpha)}; border-radius: ${Math.round(now.radius)}px;`);
+        seed.visible = this._allowedVisible();
     }
 
     // Every bar and item at one share: 1 is shown, 0 gone.
@@ -877,23 +939,31 @@ export class Dock {
             container.translation_x = this.side === 'left' ? -offset : offset;
     }
 
-    // Rises as a pill in the middle of the edge, spreads to both sides with
-    // a swing, and lets the items pop up from the middle outwards. Taken up
-    // from wherever an earlier move left things.
+    // The handle rises and swells into the dock's pill, which spreads to
+    // both sides with a swing, and the items pop up from the middle
+    // outwards. Taken up from wherever an earlier move left things.
     _appear() {
         const container = this._container;
         const style = this._style;
+        // A dock that is away, or already only the handle's twin, opens out
+        // of the twin; one still on its way out turns around where it is.
+        const seedFrom = this._seed.visible ? this._seedNow : null;
+        const fromHandle = Boolean(seedFrom) || !container.visible || container.opacity === 0;
         this._stopChoreo();
         container.remove_all_transitions();
-        if (!container.visible) {
+        if (fromHandle) {
             this._settle(0);
-            this._setRise(0);
+            this._setRise(1);
         }
-        container.opacity = 255;
+        container.opacity = fromHandle ? 0 : 255;
         container.visible = this._allowedVisible();
+        const start = seedFrom ?? this._handleShape();
+        // The bars spread the moment the pill stands; the twin was the rise.
+        const delay = fromHandle ? SEED_MS - SPREAD_AT : 0;
         const tracks = [];
-        const add = (from, at, curve, set) => tracks.push({from, at, curve, set});
-        add(this._rise(), 0, SPRINGS.rise, v => this._setRise(v));
+        const add = (from, at, curve, set) => tracks.push({from, at: at + delay, curve, set});
+        if (!fromHandle)
+            add(this._rise(), 0, SPRINGS.rise, v => this._setRise(v));
         const groups = style.revealGroups();
         const groupRanks = fromCenter(groups.length);
         groups.forEach((group, g) => {
@@ -910,9 +980,27 @@ export class Dock {
         });
         add(style.overlay.opacity / 255, OVERLAY_AT, SPRINGS.press, v => (style.overlay.opacity = Math.round(255 * clamp(v))));
         const length = Math.max(...tracks.map(track => track.at + settleMs(track.curve)));
-        debug(this, 'appear', {ms: stretch(length)});
+        debug(this, 'appear', {ms: stretch(length), fromHandle});
+        let seeding = fromHandle;
+        if (fromHandle)
+            this._drawSeed(start, start, 1);
         this._choreo = run(container, length, ms => {
             const done = ms >= stretch(length);
+            if (seeding) {
+                const now = normal(ms);
+                const pill = this._pillShape();
+                if (now < SEED_MS && !done) {
+                    if (pill)
+                        this._drawSeed(start, pill, easeOut(now / SEED_MS));
+                    else
+                        this._drawSeed(start, start, 1);
+                } else {
+                    // The pill takes over from its twin, at the same place.
+                    seeding = false;
+                    this._seed.visible = false;
+                    container.opacity = 255;
+                }
+            }
             for (const track of tracks) {
                 const share = done ? 1 : springShare(ms, track.at, track.curve);
                 track.set(track.from + (1 - track.from) * share);
@@ -920,21 +1008,28 @@ export class Dock {
             style.revealFrame();
         }, () => {
             this._choreo = null;
+            this._seed.visible = false;
+            container.opacity = 255;
             this._syncAmbient();
             this._queueIconGeometry();
         });
     }
 
     // The reverse: the items gather in the middle, the bar draws together
-    // into a pill, and the pill sinks into the edge.
+    // into a pill, and the pill sinks and shrinks into the handle.
     _go() {
         const container = this._container;
         const style = this._style;
+        // Still the handle's twin: it turns back from where it is.
+        let seedFrom = this._seed.visible ? this._seedNow : null;
         this._stopChoreo();
         container.remove_all_transitions();
+        this._closing = true;
+        this._syncHandle();
+        this._lookUnderHandle({force: true});
         const tracks = [];
         const add = (from, at, length, set) => tracks.push({from, at, length, set});
-        const groups = style.revealGroups();
+        const groups = seedFrom ? [] : style.revealGroups();
         for (const group of groups) {
             const ranks = fromCenter(group.items.length);
             const outer = Math.max(0, ...ranks);
@@ -943,18 +1038,30 @@ export class Dock {
                 add(ghost.spread, GO_BARS_AT, GO_BARS_MS, v => style.setSpread(ghost, v));
         }
         add(style.overlay.opacity / 255, 0, GO_ITEM_MS, v => (style.overlay.opacity = Math.round(255 * v)));
-        add(this._rise(), GO_SINK_AT, GO_SINK_MS, v => this._setRise(v));
-        const length = Math.max(...tracks.map(track => track.at + track.length));
+        // The twin takes over once the bars are a pill, or the items gone.
+        const seedAt = seedFrom ? 0 : Math.max(0, ...tracks.map(track => track.at + track.length));
+        const length = seedAt + GO_SEED_MS;
         debug(this, 'go', {ms: stretch(length)});
         this._choreo = run(container, length, ms => {
             const now = normal(ms);
             for (const track of tracks)
                 track.set(track.from * (1 - easeIn(clamp((now - track.at) / track.length))));
             style.revealFrame();
+            if (now < seedAt)
+                return;
+            // The pill hands over to its twin, which becomes the handle.
+            if (!seedFrom) {
+                seedFrom = this._pillShape() ?? this._handleShape();
+                container.opacity = 0;
+            }
+            this._drawSeed(seedFrom, this._handleShape(), easeInOut(clamp((now - seedAt) / GO_SEED_MS)));
         }, () => {
             this._choreo = null;
+            this._seed.visible = false;
             if (!this.shown)
                 container.visible = false;
+            this._closing = false;
+            this._syncHandle();
         });
     }
 
@@ -1098,6 +1205,8 @@ export class Dock {
         Main.layoutManager.removeChrome(this._container);
         this._container.destroy();
         this._lookAround(false);
+        Main.layoutManager.removeChrome(this._seed);
+        this._seed.destroy();
         Main.layoutManager.removeChrome(this._handle);
         this._handle.destroy();
         this._gone = true;

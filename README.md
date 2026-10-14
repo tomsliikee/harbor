@@ -30,7 +30,7 @@ Harbor sends no notifications, reads nothing from the network and keeps one smal
 - **Eleven Styles:** From a floating bar to pebbles, an edge-to-edge rail or a split by workspace (see [The Styles](#the-styles)).
 - **Pinned and Running:** Pinned apps first, then apps that run without being pinned, then drives, the trash and **Show apps**.
 - **Symbols on Round Tiles:** Every app rests on a round tile with a flat symbol in one colour: brand logos for apps like **Firefox**, **Claude** or **LibreOffice**, Material symbols for the rest. Closed apps share one quiet colour, running apps show their own tone, and the focused app is a black square (white in dark mode) that glides from app to app (see [Symbols](#symbols)).
-- **Expressive Motion:** The dock rises as a pill from the middle of the edge, spreads to both sides with a swing, and lets the icons pop up from the middle outwards (see [Motion](#motion)).
+- **Expressive Motion:** The handle rises and swells into the dock, which spreads to both sides with a swing, and lets the icons pop up from the middle outwards (see [Motion](#motion)).
 - **Clicks That Adapt:** One click starts, focuses or minimises; an app with several windows shows a **window list** instead of pictures of windows.
 - **Making Room:** The dock steps aside when a window of the app in front comes close, and returns when the pointer rests on the edge. A thin handle can stay behind, per style: white, and black only on white or nearly white ground.
 - **Status on the Icons:** Unread counts that pop and count up, a progress ring, a wiggle and a warning colour when an app wants attention, and a small wave while an app plays music.
@@ -141,8 +141,8 @@ journalctl -f -o cat /usr/bin/gnome-shell | grep Harbor
 
 | Moment | What moves |
 | :--- | :--- |
-| **Appearing** | A pill rises from the middle of the edge, spreads to both sides past its length and back, and the icons pop up from the middle outwards. Groups of a style (**Workspace split**, **Grouped block**) follow one another. |
-| **Going** | The reverse in about two thirds of the time, without swinging: the icons gather in the middle, the bar draws into a pill and sinks. |
+| **Appearing** | The handle rises, swells to the bar's thickness and takes the bar's colour in **240 ms**; as a pill it spreads to both sides past its length and back, and the icons pop up from the middle outwards. Groups of a style (**Workspace split**, **Grouped block**) follow one another. |
+| **Going** | The reverse in about two thirds of the time, without swinging: the icons gather in the middle, the bar draws into a pill, and the pill sinks and shrinks into the handle (long or short), taking its colour. With the handle off the same shape fades out at the handle's place; a style without a bar fades the shape in and out instead of showing a pill. |
 | **A new style** | It shows itself with its own appearing, even on a dock that is away. |
 | **Starting an app** | Its tile breathes between circle and cookie and hops with its symbol, until the window comes (at most **10 s**). |
 | **A new or closed app** | Its neighbours move apart and it grows in, or it shrinks and they close up. |
@@ -270,7 +270,7 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 | **Settings, shapes, springs, words, layout rules, matching symbols to app ids** | ***Tested:*** 58 unit tests, 26 real app ids among them. |
 | **Symbols on tiles in every style, the picker, choosing, Automatic, Symbolic icons off, symbols in the top bar menu** | ***Tested*** in the headless shell (`styles`, `symbols` scripts), light and dark. |
 | **Round tiles centred in the bar, ink focus, light dock on a dark desktop, long handle, a hovered tile lifting as one, the handle's colour** | ***Tested*** in the headless shell (`styles` at every edge, `look` script light and dark: white handle over a dark window, black over a light one). |
-| **Appearing and going in every style, focus gliding, hover, start, attention, counts** | ***Tested*** in the headless shell, frame by frame in slow motion (`motion` script). |
+| **Appearing and going in every style, out of and into the handle, focus gliding, hover, start, attention, counts** | ***Tested*** in the headless shell, frame by frame in slow motion (`motion` script, also with `HARBOR_HANDLES=on`, `HARBOR_LONG=on`, `HARBOR_SIDE=left`). |
 | **Make room for the app in front, edge, handle per style, see-through, minimising into the icon** | ***Tested*** in the headless shell (`behave` script). |
 | **All eleven styles at three edges, light and dark** | ***Tested*** in the headless shell by screenshot. |
 | **Clicks, right-click menu, window list, pinning by drop, making room** | ***Tested*** in the headless shell with a virtual pointer. |
@@ -287,6 +287,7 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 - **Colours through one stylesheet class per scheme, not only `set_style()`:** St has no CSS variables, so the stylesheet is written once per colour and scheme and a colour change swaps one class. Hover and focus states keep working this way. Values that scale or animate are set in code.
 - **Symbols on tiles, as in the design:** Free colour icons made the dock look like Dash to Dock. Every app rests on a tile in its tone (**primary**, **secondary** or **tertiary container**, chosen from its app id) with a flat symbol; a colour icon on a tile looked cramped, a symbol does not.
 - **Round tiles and an ink focus:** After a first try on the laptop the tiles became circles, as round as the shapes around them, and the focused app a black (in dark mode white) square, the strongest mark the dock has. Only running apps carry a tone, so the dock says at a glance what runs.
+- **The dock opens out of its handle and closes into it:** a twin of the handle travels between the handle's place and the dock's pill, so handle and dock read as one thing; the bars and items keep their own spring motion after the hand-over.
 - **A tile lifts as one:** shape and symbol move together on hover and while an app starts; only the symbol moving looked loose.
 - **The handle picks its colour from the screen:** white wherever it can be seen, black on white or nearly white ground (relative luminance above **0.6**), read with the shell's own colour picker.
 - **Light dock is a view of the theme, not a second theme:** the dock reads the same colour style with the scheme held at light; the top bar menu keeps following the desktop.
