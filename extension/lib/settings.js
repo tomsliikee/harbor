@@ -11,15 +11,12 @@ export const STYLES = [
     'loud-tile', 'mono-container', 'window-list', 'pebbles', 'workspace-split',
 ];
 export const POSITIONS = ['left', 'bottom', 'right'];
-export const ICON_SIZES = ['small', 'medium', 'large'];
+export const ICON_SIZES = ['small', 'medium', 'large', 'huge'];
 export const WHEN_WINDOW_CLOSE = ['stay', 'make-room', 'hide'];
 export const MOTION_SPEEDS = ['quick', 'normal', 'slow'];
 
-// The size of an app's own icon as the dock shows it.
-export const ICON_PX = {small: 52, medium: 64, large: 76};
-
-// Values an earlier Harbor wrote that mean something else now.
-const RENAMED = {iconSize: {huge: 'large'}};
+// The size of an app's tile; the symbol on it is half as large.
+export const ICON_PX = {small: 40, medium: 48, large: 56, huge: 64};
 
 const CHOICES = {
     style: STYLES,
@@ -32,6 +29,15 @@ const CHOICES = {
 
 // Keys that hold one switch per style.
 const PER_STYLE = ['handles'];
+
+// Keys that hold a word per app id.
+const PER_APP = ['symbols'];
+
+function perApp(value) {
+    if (value === null || typeof value !== 'object' || Array.isArray(value))
+        return {};
+    return Object.fromEntries(Object.entries(value).filter(([id, word]) => id && typeof word === 'string' && word));
+}
 
 function perStyle(value, fallback) {
     const source = value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -54,6 +60,10 @@ export const DEFAULTS = Object.freeze({
     expressiveMotion: true,
     alwaysMoving: false,
     motionSpeed: 'normal',
+    // Flat symbols on the tiles instead of the apps' own icons.
+    symbolicIcons: true,
+    // The symbol chosen for an app: {appId: key}.
+    symbols: Object.freeze({}),
     // Writes what the dock decides to the journal; not in the menu.
     debug: false,
 });
@@ -63,8 +73,10 @@ export function normalize(raw) {
     const source = raw !== null && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const settings = {};
     for (const [key, fallback] of Object.entries(DEFAULTS)) {
-        const value = RENAMED[key]?.[source[key]] ?? source[key];
-        if (PER_STYLE.includes(key))
+        const value = source[key];
+        if (PER_APP.includes(key))
+            settings[key] = perApp(value);
+        else if (PER_STYLE.includes(key))
             settings[key] = perStyle(value, true);
         else if (key in CHOICES)
             settings[key] = CHOICES[key].includes(value) ? value : fallback;
@@ -85,6 +97,8 @@ export function parse(text) {
 export function isValid(key, value) {
     if (!(key in DEFAULTS))
         return false;
+    if (PER_APP.includes(key))
+        return JSON.stringify(perApp(value)) === JSON.stringify(value);
     if (PER_STYLE.includes(key))
         return value !== null && typeof value === 'object' && STYLES.every(style => typeof value[style] === 'boolean');
     return key in CHOICES ? CHOICES[key].includes(value) : typeof value === 'boolean';

@@ -14,7 +14,11 @@ test('validity per key', () => equal(
     [isValid('colour', 'pink'), isValid('colour', 'red'), isValid('countsOnIcons', false), isValid('nope', true)],
     [true, false, true, false]));
 
-test('the old huge size is large now', () => equal(parse('{"iconSize": "huge"}').iconSize, 'large'));
+test('four sizes', () => equal(['small', 'huge', 'giant'].map(size => parse(`{"iconSize": "${size}"}`).iconSize), ['small', 'huge', 'medium']));
+test('symbols keep only words per app', () => equal(
+    parse('{"symbols": {"firefox.desktop": "zen", "x.desktop": 3, "y.desktop": ""}}').symbols, {'firefox.desktop': 'zen'}));
+test('symbols must be an object', () => equal([parse('{"symbols": ["zen"]}').symbols, isValid('symbols', {'a.desktop': 'zen'}),
+    isValid('symbols', {'a.desktop': 1}), isValid('symbolicIcons', false)], [{}, true, false, true]));
 test('handles fall back per style', () => {
     const settings = parse('{"handles": {"pebbles": false, "status": "no"}}');
     equal([settings.handles.pebbles, settings.handles.status, settings.handles['floating-bar']], [false, true, true]);

@@ -23,4 +23,15 @@ test('magnification', () => equal([0, 1, 2, 3, 0.5].map(d => Math.round(Layout.m
     [1.45, 1.2, 1.08, 1, 1.325]));
 test('from the middle outwards', () => equal([Layout.fromCenter(5), Layout.fromCenter(4), Layout.fromCenter(1)],
     [[2, 1, 0, 1, 2], [1, 0, 0, 1], [0]]));
+const symbols = [
+    {key: 'lo-writer', match: ['libreoffice-writer', 'libreoffice.writer']},
+    {key: 'lo', match: ['libreoffice']},
+    {key: 'zen', match: ['zen']},
+    {key: 'folder', match: ['nautilus']},
+];
+test('a symbol by id', () => equal(['org.gnome.Nautilus.desktop', 'app.zen_browser.zen.desktop', 'gedit.desktop', '']
+    .map(id => Layout.matchSymbol(id, symbols)), ['folder', 'zen', null, null]));
+test('the longer match wins', () => equal(['libreoffice-writer.desktop', 'org.libreoffice.LibreOffice.writer.desktop',
+    'libreoffice-calc.desktop'].map(id => Layout.matchSymbol(id, symbols)), ['lo-writer', 'lo-writer', 'lo']));
+test('a word matches a whole piece only', () => equal(Layout.matchSymbol('org.zenith.App.desktop', symbols), null));
 done('layout');
