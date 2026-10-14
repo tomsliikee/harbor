@@ -1,8 +1,10 @@
-// The five colour styles. Each is Material 3's SchemeVibrant (contrast 0)
-// of one seed, worked out ahead with @material/material-color-utilities;
-// blue is the design system's own palette. Code reads roles, never hex.
+// The eight colour styles, in the order of the swatches. Each is Material
+// 3's SchemeVibrant (contrast 0) of one seed, worked out ahead with
+// @material/material-color-utilities; blue is the design system's own
+// palette. Teal (#00a896) and salmon (#fa8072) are seeds Halo added; white
+// is SchemeMonochrome. Code reads roles, never hex.
 
-export const COLOURS = ['blue', 'violet', 'green', 'orange', 'pink'];
+export const COLOURS = ['blue', 'violet', 'green', 'teal', 'orange', 'salmon', 'pink', 'white'];
 
 export const palettes = {
     blue: {
@@ -17,13 +19,25 @@ export const palettes = {
         light: {primary: '#006e2e', onPrimary: '#ffffff', pc: '#67ff8d', onPc: '#005321', sc: '#c1ecd4', onSc: '#284e3c', tc: '#aaf0df', onTc: '#005045', surf: '#e6f1e3', bright: '#f2fcee', high: '#e1ebdd', highest: '#dbe5d7', low: '#ecf7e8', on: '#151e15', onVar: '#3e4a3d', outline: '#6e7a6c', outVar: '#bdcaba'},
         dark: {primary: '#00e468', onPrimary: '#003915', pc: '#005321', onPc: '#67ff8d', sc: '#284e3c', onSc: '#c1ecd4', tc: '#005045', onTc: '#aaf0df', surf: '#192219', bright: '#323c32', high: '#232c23', highest: '#2e372e', low: '#151e15', on: '#dbe5d7', onVar: '#bdcaba', outline: '#879485', outVar: '#3e4a3d'},
     },
+    teal: {
+        light: {primary: '#006b5f', onPrimary: '#ffffff', pc: '#00fee3', onPc: '#005047', sc: '#bcebee', onSc: '#1e4d50', tc: '#afecff', onTc: '#004e5d', surf: '#e2f1ed', bright: '#eefdf8', high: '#ddebe7', highest: '#d7e6e1', low: '#e8f7f2', on: '#111e1b', onVar: '#394a46', outline: '#697b76', outVar: '#b8cac5'},
+        dark: {primary: '#00dfc7', onPrimary: '#003731', pc: '#005047', onPc: '#00fee3', sc: '#1e4d50', onSc: '#bcebee', tc: '#004e5d', onTc: '#afecff', surf: '#15221f', bright: '#2f3c39', high: '#202c2a', highest: '#2a3734', low: '#111e1b', on: '#d7e6e1', onVar: '#b8cac5', outline: '#839490', outVar: '#394a46'},
+    },
     orange: {
         light: {primary: '#ab3500', onPrimary: '#ffffff', pc: '#ffdbd0', onPc: '#832700', sc: '#ffdcc5', onSc: '#633e22', tc: '#ffddb6', onTc: '#633f06', surf: '#ffe9e3', bright: '#fff8f6', high: '#ffe2da', highest: '#f9ddd4', low: '#fff1ed', on: '#271813', onVar: '#58423a', outline: '#8c7169', outVar: '#dfc0b6'},
         dark: {primary: '#ffb59c', onPrimary: '#5c1900', pc: '#832700', onPc: '#ffdbd0', sc: '#633e22', onSc: '#ffdcc5', tc: '#633f06', onTc: '#ffddb6', surf: '#2b1c17', bright: '#47352f', high: '#362621', highest: '#42312b', low: '#271813', on: '#f9ddd4', onVar: '#dfc0b6', outline: '#a78b82', outVar: '#58423a'},
     },
+    salmon: {
+        light: {primary: '#c0000d', onPrimary: '#ffffff', pc: '#ffdad5', onPc: '#930007', sc: '#ffdbcc', onSc: '#653d29', tc: '#ffdcc1', onTc: '#683c0f', surf: '#ffe9e6', bright: '#fff8f7', high: '#ffe2de', highest: '#f9dcd8', low: '#fff0ee', on: '#271816', onVar: '#58413e', outline: '#8c716d', outVar: '#dfbfbb'},
+        dark: {primary: '#ffb4aa', onPrimary: '#690003', pc: '#930007', onPc: '#ffdad5', sc: '#653d29', onSc: '#ffdbcc', tc: '#683c0f', onTc: '#ffdcc1', surf: '#2b1c1a', bright: '#473532', high: '#372624', highest: '#42302e', low: '#271816', on: '#f9dcd8', onVar: '#dfbfbb', outline: '#a78a86', outVar: '#58413e'},
+    },
     pink: {
         light: {primary: '#ba005b', onPrimary: '#ffffff', pc: '#ffd9e1', onPc: '#8f0044', sc: '#ffdad7', onSc: '#663b39', tc: '#ffdbcf', onTc: '#6e3824', surf: '#ffe8ec', bright: '#fff8f8', high: '#fce2e6', highest: '#f6dce1', low: '#fff0f2', on: '#26181b', onVar: '#564146', outline: '#897176', outVar: '#ddbfc5'},
         dark: {primary: '#ffb1c4', onPrimary: '#65002e', pc: '#8f0044', onPc: '#ffd9e1', sc: '#663b39', onSc: '#ffdad7', tc: '#6e3824', onTc: '#ffdbcf', surf: '#2a1c1f', bright: '#453538', high: '#352629', highest: '#413034', low: '#26181b', on: '#f6dce1', onVar: '#ddbfc5', outline: '#a48a8f', outVar: '#564146'},
+    },
+    white: {
+        light: {primary: '#000000', onPrimary: '#e2e2e2', pc: '#3b3b3b', onPc: '#ffffff', sc: '#d4d4d4', onSc: '#1b1b1b', tc: '#747474', onTc: '#ffffff', surf: '#eeeeee', bright: '#f9f9f9', high: '#e8e8e8', highest: '#e2e2e2', low: '#f3f3f3', on: '#1b1b1b', onVar: '#474747', outline: '#777777', outVar: '#c6c6c6'},
+        dark: {primary: '#ffffff', onPrimary: '#1b1b1b', pc: '#d4d4d4', onPc: '#000000', sc: '#474747', onSc: '#e2e2e2', tc: '#919191', onTc: '#000000', surf: '#1f1f1f', bright: '#393939', high: '#2a2a2a', highest: '#353535', low: '#1b1b1b', on: '#e2e2e2', onVar: '#c6c6c6', outline: '#919191', outVar: '#474747'},
     },
 };
 

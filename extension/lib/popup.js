@@ -40,7 +40,10 @@ const MORE_SWITCHES = [
     ['countsOnIcons', 'Counts on icons', 'Shows unread counts and progress that apps report.'],
     ['everyMonitor', 'Every monitor', 'Puts a dock on each screen, not only the main one.'],
 ];
-const COLOUR_NAMES = {blue: 'Blue', violet: 'Violet', green: 'Green', orange: 'Orange', pink: 'Pink'};
+const COLOUR_NAMES = {
+    blue: 'Blue', violet: 'Violet', green: 'Green', teal: 'Teal',
+    orange: 'Orange', salmon: 'Salmon', pink: 'Pink', white: 'White',
+};
 const CLOSING_NOTE = 'Clicks adapt by themselves: one window focuses or minimises, several show a list. Make room gives way to the app in front; rest the pointer on the edge to bring the dock back.';
 const PINNED_NOTE = 'Drag an icon in the dock to move it. Right-click it to unpin.';
 const DASH_TO_DOCK = 'Dash to Dock is on too. Harbor replaces it; switch it off in Extensions.';
