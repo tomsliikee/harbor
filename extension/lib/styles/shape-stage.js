@@ -34,10 +34,9 @@ export class ShapeStageStyle extends Style {
     }
 
     fill(button) {
-        const iconSize = Math.round(this.host.iconPx * 0.8);
         const slot = this.makeSlot(button, {
             size: this.focusedStage,
-            iconSize,
+            iconSize: this.slotSize,
             solid: {scale: this.restScale, hoverScale: this.restScale * 1.06},
         });
         // A holder, so the status layer can wrap the slot.
@@ -90,7 +89,9 @@ export class ShapeStageStyle extends Style {
             const item = button.item;
             const scale = item.focused ? 1 : this.restScale;
             button.slot.setRest({form: ladder(item.windows.length), hoverForm: COOKIE, scale, hoverScale: scale * 1.06});
-            button.icon.icon_size = Math.round(this.host.iconPx * (item.focused ? 0.9 : 0.8));
+            // The focused app's glyph grows with its stage.
+            button.restIconSize ??= button.icon.icon_size;
+            button.icon.icon_size = Math.round(button.restIconSize * (item.focused ? 1.14 : 1));
         }
         this.host.paintStatus(button);
     }

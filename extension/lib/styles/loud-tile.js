@@ -6,6 +6,7 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import * as Actions from '../actions.js';
+import {appGlyph, paintGlyph} from '../icon.js';
 import {box} from './base.js';
 import {text} from '../text.js';
 import {FloatingBarStyle} from './floating-bar.js';
@@ -58,9 +59,9 @@ export class LoudTileStyle extends FloatingBarStyle {
         if (app !== this._loudApp) {
             this._loudApp = app;
             const size = Math.round(this.host.iconPx * 0.9);
-            this.loudPlace.set_child(app
-                ? app.create_icon_texture(size)
-                : new St.Icon({icon_name: 'view-app-grid-symbolic', icon_size: Math.round(size * 0.45)}));
+            this._loudGlyph = app ? appGlyph(app, size, this.host.settings) : null;
+            this.loudPlace.set_child(this._loudGlyph?.icon ??
+                new St.Icon({icon_name: 'view-app-grid-symbolic', icon_size: Math.round(size * 0.45)}));
             this.loudPlace.set_size(size, size);
             this._paintLoudPlace();
         }
@@ -74,12 +75,14 @@ export class LoudTileStyle extends FloatingBarStyle {
         }
     }
 
-    // The app's own icon stands free; without an app, a glyph on primary.
+    // A glyph on primary; an app's own icon stands free.
     _paintLoudPlace() {
         const roles = this.host.theme.roles;
-        this.loudPlace.set_style(this._loudApp
+        const real = this._loudApp && !this._loudGlyph?.symbolic;
+        this.loudPlace.set_style(real
             ? 'background-color: transparent;'
             : `background-color: ${roles.primary}; color: ${roles.onPrimary}; border-radius: ${this.px(16)}px;`);
+        paintGlyph(this._loudGlyph, roles.onPrimary);
     }
 
     revealItems() {

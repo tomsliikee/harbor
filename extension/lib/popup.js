@@ -20,12 +20,13 @@ import * as Words from './words.js';
 
 const CAPTIONS = {
     left: 'Left', bottom: 'Bottom', right: 'Right',
-    small: 'Small', medium: 'Medium', large: 'Large',
+    small: 'Small', medium: 'Medium', large: 'Large', huge: 'Huge',
     'stay': 'Stay', 'make-room': 'Make room', 'hide': 'Hide',
     quick: 'Quick', normal: 'Normal', slow: 'Slow',
 };
 // [key, title, note]; a key of "handles" means the chosen style's handle.
 const LOOK_SWITCHES = [
+    ['symbolicIcons', 'Symbolic icons', 'Flat symbols in the colours of the dock. Right-click an app to choose its symbol.'],
     ['seeThrough', 'See-through', 'Lets the wallpaper show through the dock.'],
     ['expressiveMotion', 'Expressive motion', 'The dock rises and spreads out, icons pop up, shapes glide and morph.'],
 ];

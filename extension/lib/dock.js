@@ -128,8 +128,9 @@ export class Dock {
     // the style anew, the rest is applied in place.
     setSettings(settings) {
         const before = this._settings;
-        const rebuild = ['style', 'position', 'iconSize', 'trashAndDrives', 'whenWindowClose']
-            .some(key => settings[key] !== before[key]);
+        const rebuild = ['style', 'position', 'iconSize', 'trashAndDrives', 'whenWindowClose', 'symbolicIcons']
+            .some(key => settings[key] !== before[key]) ||
+            JSON.stringify(settings.symbols) !== JSON.stringify(before.symbols);
         this._settings = settings;
         if (rebuild) {
             this._applySettings(settings, {fade: true});

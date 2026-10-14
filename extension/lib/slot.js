@@ -1,9 +1,8 @@
-// HarborSlot: the place of one item in the dock. The app's own icon stands
-// in it, large and free; a shape behind it only shows a state: the pointer
-// resting on it, the app starting, or the app asking for attention.
-//
-// A solid slot keeps its shape all the time (Show apps, a pebble, a stage);
-// its state then changes the shape's form and size instead.
+// HarborSlot: the place of one item in the dock. A solid slot (every app's
+// tile, Show apps, a pebble, a stage) keeps its shape all the time; its
+// state changes the shape's form and size. A free slot shows a shape only
+// for a state: the pointer resting on it, the app starting, or the app
+// asking for attention.
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -150,6 +149,10 @@ class HarborSlot extends St.Widget {
         let scale = hover || this._launching || this._attention ? 1 : 0;
         if (solid)
             scale = this._hover ? solid.hoverScale : solid.scale;
+        // A solid slot's shape steps aside while the focus shape stands in
+        // for it.
+        if (solid && this._backed)
+            scale = 0;
         const [x, y] = this._liftOffset(this._hover ? this._lift : 0);
         if (animated) {
             spring(shape, {scale_x: scale, scale_y: scale}, {spring: SPRINGS.hover});
@@ -184,7 +187,7 @@ class HarborSlot extends St.Widget {
     }
 
     _frame(ms) {
-        const rest = this._solid?.scale ?? 1;
+        const rest = this._solid && this._backed ? 0 : this._solid?.scale ?? 1;
         if (this._launching) {
             // The shape breathes and changes between circle and cookie on
             // every beat; the icon hops away from the edge.

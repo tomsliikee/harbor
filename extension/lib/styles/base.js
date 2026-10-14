@@ -14,15 +14,14 @@ import St from 'gi://St';
 
 import {HarborAppButton} from '../appbutton.js';
 import {SPRINGS, expressive, spring} from '../choreo.js';
-import {mix, rgba} from '../palettes.js';
-import {BLOOM, COOKIE} from '../shapes.js';
+import {GLYPH_SHARE, appGlyph, paintGlyph} from '../icon.js';
+import {mix, rgba, warn} from '../palettes.js';
+import {BLOOM, COOKIE, TILE} from '../shapes.js';
 import {HarborSlot} from '../slot.js';
+import {symbolGicon} from '../symbols.js';
 
 export const TONE_TEXT = {pc: 'onPc', sc: 'onSc', tc: 'onTc'};
 
-// A slot is this much larger than the icon in it, so a shape behind the
-// icon shows around it.
-const SLOT_SHARE = 1.16;
 
 export function box(vertical, styleClass = '', params = {}) {
     return new St.BoxLayout({
@@ -146,8 +145,9 @@ export class Style {
         return Math.round(value * this.s);
     }
 
+    // An item's tile; host.iconPx is the tile's size.
     get slotSize() {
-        return Math.round(this.host.iconPx * SLOT_SHARE);
+        return this.host.iconPx;
     }
 
     buildRoot() {
@@ -292,18 +292,21 @@ export class Style {
 
     // Slots
 
-    // The place of an item: its icon, or the glyph of a place or Show apps.
-    makeSlot(button, {size = this.slotSize, iconSize = this.host.iconPx, solid = null, shadow = false} = {}) {
-        const glyph = Math.round(iconSize * 0.5);
+    // The place of an item: a tile with the app's glyph, or the glyph of a
+    // place or Show apps. iconSize: the tile the glyph is measured for.
+    makeSlot(button, {size = this.slotSize, iconSize = size, solid = null, shadow = false} = {}) {
+        const glyph = Math.round(iconSize * GLYPH_SHARE);
         let icon;
         if (button.kind === 'app') {
             icon = this.appIcon(button, iconSize);
+            solid ??= this.tileRest(button);
         } else if (button.kind === 'show-apps') {
-            icon = new St.Icon({icon_name: 'view-app-grid-symbolic', icon_size: glyph});
-            solid ??= {form: COOKIE, hoverForm: BLOOM, scale: 0.86, hoverScale: 0.96};
+            icon = new St.Icon({gicon: symbolGicon('apps'), fallback_icon_name: 'view-app-grid-symbolic', icon_size: glyph});
+            solid ??= {form: TILE, hoverForm: BLOOM, scale: 1, hoverScale: 1};
         } else {
             icon = new St.Icon({icon_size: glyph});
             button.placeIcon = icon;
+            solid ??= this.tileRest(button);
         }
         const slot = new HarborSlot({size, icon, side: this.host.side, lift: this.px(4), solid, shadow});
         button.slot = slot;
@@ -311,9 +314,21 @@ export class Style {
         return slot;
     }
 
-    // An app's icon as this style shows it.
-    appIcon(button, iconSize) {
-        return button.item.app.create_icon_texture(iconSize);
+    // How an item's tile rests and how it turns under the pointer; null for
+    // a style whose icons stand free.
+    tileRest(_button) {
+        return {form: TILE, hoverForm: COOKIE, scale: 1, hoverScale: 1};
+    }
+
+    // An app's glyph for a tile of `tile` px: its symbol or its own icon.
+    appIcon(button, tile) {
+        button.glyph = appGlyph(button.item.app, tile, this.host.settings);
+        return button.glyph.icon;
+    }
+
+    // The focus shape stands in for this button's tile.
+    isFocusShown(_button) {
+        return false;
     }
 
     // An app's tone, pulled toward primary so it stands out from a light
@@ -328,13 +343,20 @@ export class Style {
     slotColor(button) {
         const roles = this.host.theme.roles;
         if (button.kind === 'app')
-            return this.toneColor(button.item.tone, 0.18);
+            return this.toneColor(button.item.tone, 0.06);
         return button.kind === 'show-apps' ? roles.tc : roles.high;
     }
 
     // The colour of a glyph on its shape (or on the bar).
     glyphColor(button) {
         const roles = this.host.theme.roles;
+        if (button.kind === 'app') {
+            if (this.host.attentionFor(button))
+                return warn.on;
+            if (this.isFocusShown(button))
+                return roles.onPrimary;
+            return roles[TONE_TEXT[button.item.tone]];
+        }
         return button.kind === 'show-apps' ? roles.onTc : roles.onVar;
     }
 
@@ -349,6 +371,8 @@ export class Style {
         }
         if (button.kind !== 'app')
             button.icon.set_style(`color: ${this.glyphColor(button)};`);
+        else
+            paintGlyph(button.glyph, this.glyphColor(button));
     }
 
     // Bars

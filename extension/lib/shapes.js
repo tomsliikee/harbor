@@ -4,6 +4,9 @@
 export const POINTS = 240;
 
 export const CIRCLE = Object.freeze({n: 0, a: 0});
+// An app's tile: a square with round corners (the corners reach out, so a
+// cookie or a circle morphs into it point by point).
+export const TILE = Object.freeze({n: 4, a: -0.16});
 export const COOKIE = Object.freeze({n: 6, a: 0.14});
 // Behind the focused app: a soft eight-scalloped sun.
 export const SUNNY = Object.freeze({n: 8, a: 0.1});

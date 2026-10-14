@@ -88,12 +88,16 @@ class HarborShape extends St.DrawingArea {
         const [width, height] = this.get_surface_size();
         // A soft shadow below needs room, so the shape stays a little smaller.
         const inset = this._shadow ? 3 : 0;
-        const r = Math.min(width, height) / 2 - inset;
         const cx = width / 2;
         const cy = height / 2 - (this._shadow ? 1 : 0);
         const cos = Math.cos(this._angle);
         const sin = Math.sin(this._angle);
-        const points = this._current().map(([x, y]) => [cx + (x * cos - y * sin) * r, cy + (x * sin + y * cos) * r]);
+        const turned = this._current().map(([x, y]) => [x * cos - y * sin, x * sin + y * cos]);
+        // A tile's corners reach past the unit circle; the shape is scaled
+        // so it always fits its square, also while it turns.
+        const reach = Math.max(1, ...turned.map(([x, y]) => Math.max(Math.abs(x), Math.abs(y))));
+        const r = (Math.min(width, height) / 2 - inset) / reach;
+        const points = turned.map(([x, y]) => [cx + x * r, cy + y * r]);
         if (this._shadow) {
             cr.save();
             cr.translate(0, 2);

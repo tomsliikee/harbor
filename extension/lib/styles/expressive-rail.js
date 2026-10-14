@@ -6,6 +6,7 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import {SPRINGS, spring} from '../choreo.js';
+import {appGlyph, paintGlyph} from '../icon.js';
 import {HarborRunLine} from '../runline.js';
 import {text} from '../text.js';
 import * as Words from '../words.js';
@@ -117,7 +118,7 @@ export class ExpressiveRailStyle extends Style {
         if (!monitor)
             return;
         this.pill.set_style(`background-color: ${roles.pc}; color: ${roles.onPc}; border-radius: ${Math.round(this.pillHeight / 2)}px; padding: ${this.px(4)}px;`);
-        this.pillPlace.set_style('background-color: transparent;');
+        this._paintPillPlace();
         this.pill.get_child().set_style(`spacing: ${this.px(12)}px; padding-right: ${this.px(14)}px;`);
         this.pill.get_child().get_children()[1].set_style(`spacing: ${this.px(8)}px;`);
     }
@@ -142,6 +143,16 @@ export class ExpressiveRailStyle extends Style {
         this.pillCount.text = Words.windows(item.windows.length);
     }
 
+    // The focused app's glyph sits on a primary circle at the pill's start.
+    _paintPillPlace() {
+        const roles = this.host.theme.roles;
+        const symbolic = this._pillGlyph?.symbolic;
+        this.pillPlace.set_style(symbolic
+            ? `background-color: ${roles.primary}; border-radius: ${Math.round(this.pillHeight / 2)}px;`
+            : 'background-color: transparent;');
+        paintGlyph(this._pillGlyph, roles.onPrimary);
+    }
+
     // The pill unfolds from the focused app's tile toward the screen.
     _showPill(button) {
         if (button === this._pillFor)
@@ -151,7 +162,9 @@ export class ExpressiveRailStyle extends Style {
             this.pill.visible = false;
             return;
         }
-        this.pillPlace.set_child(button.item.app.create_icon_texture(this.pillHeight - this.px(12)));
+        this._pillGlyph = appGlyph(button.item.app, this.pillHeight - this.px(8), this.host.settings);
+        this.pillPlace.set_child(this._pillGlyph.icon);
+        this._paintPillPlace();
         this._fillPill(button);
         this.pill.visible = true;
         this._placePill(true);

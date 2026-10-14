@@ -1,6 +1,6 @@
-// Floating bar: one rounded bar that floats above the edge. The apps' own
-// icons stand free on it; a shape in the focused app's tone glides behind
-// whichever app has the focus, and a line under each says what runs.
+// Floating bar: one rounded bar that floats above the edge. Every app rests
+// on a tile in its tone; the focused app's tile is a primary one that
+// glides from app to app, and a line under each says what runs.
 
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
@@ -8,7 +8,7 @@ import St from 'gi://St';
 import {SPRINGS, expressive, run, spring, springShare, stretch} from '../choreo.js';
 import {HarborRunLine} from '../runline.js';
 import {HarborShape} from '../shape.js';
-import {COOKIE, SUNNY} from '../shapes.js';
+import {COOKIE, TILE} from '../shapes.js';
 import {settleMs} from '../spring.js';
 import {Style, box, rectIn} from './base.js';
 
@@ -20,7 +20,7 @@ export class FloatingBarStyle extends Style {
         this.glider = new HarborShape({size: this.slotSize});
         this.glider.set_pivot_point(0.5, 0.5);
         this.glider.set_scale(0, 0);
-        this.glider.setShape(SUNNY, {animated: false});
+        this.glider.setShape(this.focusForm, {animated: false});
         this.backdrop.add_child(this.glider);
     }
 
@@ -48,8 +48,22 @@ export class FloatingBarStyle extends Style {
     }
 
     // The colour of the focus shape behind an app.
-    focusColor(button) {
-        return this.toneColor(button.item.tone, 0.32);
+    focusColor(_button) {
+        return this.host.theme.roles.primary;
+    }
+
+    // The focus shape at rest: a tile like the others.
+    get focusForm() {
+        return TILE;
+    }
+
+    isFocusShown(button) {
+        return button === this._focus;
+    }
+
+    // Room between two tiles, so each stands on its own.
+    get gap() {
+        return this.px(12);
     }
 
     fill(button) {
@@ -93,14 +107,14 @@ export class FloatingBarStyle extends Style {
         const roles = this.host.theme.roles;
         const vertical = this.host.vertical;
         const pad = this.barPadding;
-        this.body.set_style(`padding: ${pad}px; spacing: ${this.px(4)}px;`);
+        this.body.set_style(`padding: ${pad}px ${pad + this.px(4)}px; spacing: ${this.gap}px;`);
         this.bar(this.body, this.tileStyle(roles.highest, this.barRadius, this.host.barAlpha));
-        this.apps.set_style(`spacing: ${this.px(2)}px;`);
-        this.ends.set_style(`spacing: ${this.px(2)}px;`);
+        this.apps.set_style(`spacing: ${this.gap}px;`);
+        this.ends.set_style(`spacing: ${this.gap}px;`);
         if (vertical)
-            this.separator.set_size(this.px(36), 1);
+            this.separator.set_size(this.px(32), 1);
         else
-            this.separator.set_size(1, this.px(36));
+            this.separator.set_size(1, this.px(32));
         this.separator.set_style(`background-color: ${roles.outVar};`);
         this.separator.x_align = Clutter.ActorAlign.CENTER;
         this.separator.y_align = Clutter.ActorAlign.CENTER;
@@ -187,7 +201,7 @@ export class FloatingBarStyle extends Style {
             this.glider.set_position(Math.round(from.x + (to.x - from.x) * share), Math.round(from.y + (to.y - from.y) * share));
         }, () => {
             this._glide = null;
-            this.glider.setShape(SUNNY);
+            this.glider.setShape(this.focusForm);
             this._placeGlider();
         });
     }

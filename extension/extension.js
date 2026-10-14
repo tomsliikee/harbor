@@ -14,6 +14,7 @@ import {Power} from './lib/power.js';
 import {Popup} from './lib/popup.js';
 import {SettingsStore} from './lib/settings.js';
 import {Status} from './lib/status.js';
+import {loadSymbols, unloadSymbols} from './lib/symbols.js';
 import {ThemeController} from './lib/theme.js';
 
 const DASH_TO_DOCK = 'dash-to-dock@micxgx.gmail.com';
@@ -23,6 +24,7 @@ const DASH_TO_DOCK = 'dash-to-dock@micxgx.gmail.com';
 export default class HarborExtension extends Extension {
     enable() {
         this._idle = 0;
+        loadSymbols(this.dir.get_child('symbols'));
         this._settings = new SettingsStore(settings => this._settingsChanged(settings));
         setMotion(this._settings.current);
         this._theme = new ThemeController(this._settings.current.colour);
@@ -89,6 +91,7 @@ export default class HarborExtension extends Extension {
         this._theme = null;
         this._settings.destroy();
         this._settings = null;
+        unloadSymbols();
     }
 
     _dockState() {
