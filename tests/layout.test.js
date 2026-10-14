@@ -37,5 +37,13 @@ test('a word matches a whole piece only', () => equal(Layout.matchSymbol('org.ze
 test('the handle is dark only on white', () => equal(
     [[[255, 255, 255]], [[245, 244, 250]], [[226, 225, 239]], [[160, 160, 160]], [[18, 26, 60]], [[255, 140, 0]], [[255, 255, 255], [0, 0, 0]], []].map(Layout.darkOn),
     [true, true, true, false, false, false, false, false]));
+test('pills far apart keep their place', () => equal(
+    Layout.spreadApart([{centre: 100, length: 40}, {centre: 300, length: 40}], 6), [80, 280]));
+test('touching pills move apart around their middle', () => equal(
+    Layout.spreadApart([{centre: 160, length: 100}, {centre: 100, length: 100}], 6), [133, 27]));
+test('a pushed pair pushes the next one too', () => equal(
+    Layout.spreadApart([{centre: 100, length: 60}, {centre: 120, length: 60}, {centre: 140, length: 60}], 4), [26, 90, 154]));
+test('pills of unequal length keep their mean place', () => equal(
+    Layout.spreadApart([{centre: 100, length: 20}, {centre: 110, length: 100}], 0), [65, 85]));
 
 done('layout');

@@ -266,7 +266,7 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 
 | Area | Evidence |
 | :--- | :--- |
-| **Settings, shapes, springs, words, layout rules, matching symbols to app ids** | ***Tested:*** 59 unit tests, 26 real app ids among them. |
+| **Settings, shapes, springs, words, layout rules, matching symbols to app ids** | ***Tested:*** 63 unit tests, 26 real app ids among them. |
 | **Symbols on tiles in every style, the picker, choosing, Automatic, Symbolic icons off, symbols in the top bar menu** | ***Tested*** in the headless shell (`styles`, `symbols` scripts), light and dark. |
 | **Round tiles centred in the bar, ink focus, light dock on a dark desktop, long handle, a hovered tile lifting as one, the handle's colour** | ***Tested*** in the headless shell (`styles` at every edge, `look` script light and dark: white handle over a dark window, black over a light one). |
 | **Appearing and going in every style, out of and into the handle, focus gliding, hover, start, attention, counts** | ***Tested*** in the headless shell, frame by frame in slow motion (`motion` script, also with `HARBOR_HANDLES=on`, `HARBOR_LONG=on`, `HARBOR_SIDE=left`). |

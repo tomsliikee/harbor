@@ -1,5 +1,7 @@
 // Status on the icons and the window list, then the extended bar with its
-// status pills and a window list on hover.
+// status pills and a window list on hover. HARBOR_SIDE=left|right moves the dock.
+import GLib from 'gi://GLib';
+
 export default async function ({extension, shot, sleep, note, moveTo, click, launch, set}) {
     await launch('org.gnome.Ptyxis.desktop');
     await launch('org.gnome.Ptyxis.desktop');
@@ -28,6 +30,7 @@ export default async function ({extension, shot, sleep, note, moveTo, click, lau
 
     dock._dropMenu();
     moveTo(640, 200);
+    set('position', GLib.getenv('HARBOR_SIDE') ?? 'bottom');
     set('style', 'extended-bar');
     status.report('org.gnome.Ptyxis.desktop', {urgent: true});
     await sleep(1200);

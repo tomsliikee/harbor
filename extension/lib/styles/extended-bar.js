@@ -8,10 +8,13 @@ import St from 'gi://St';
 
 import {text} from '../text.js';
 import * as Words from '../words.js';
+import {spreadApart} from '../layout.js';
 import {rectIn} from './base.js';
 import {FloatingBarStyle} from './floating-bar.js';
 
 const GAP = 6;
+// Between two pills of neighbouring apps.
+const APART = 6;
 const HOVER_MS = 400;
 
 export class ExtendedBarStyle extends FloatingBarStyle {
@@ -50,6 +53,7 @@ export class ExtendedBarStyle extends FloatingBarStyle {
         if (!sentence) {
             pill?.destroy();
             this._pills.delete(button);
+            this._arrange();
             return;
         }
         if (!pill) {
@@ -61,14 +65,15 @@ export class ExtendedBarStyle extends FloatingBarStyle {
             button.connect('destroy', () => {
                 this._pills.get(button)?.destroy();
                 this._pills.delete(button);
+                this._arrange();
             });
-            button.connect('notify::allocation', () => this._place(button));
+            button.connect('notify::allocation', () => this._arrange());
         }
         pill.label.text = sentence;
         const roles = this.host.theme.roles;
         // In the bar's colour with a thin rim, so it reads on dark and light ground.
         pill.set_style(`background-color: ${this.barColor}; color: ${roles.on}; border: 1px solid ${roles.outVar};`);
-        this._place(button);
+        this._arrange();
     }
 
     hovered(button, hover) {
@@ -87,26 +92,36 @@ export class ExtendedBarStyle extends FloatingBarStyle {
     }
 
     overlayMoved() {
-        for (const button of this._pills.keys())
-            this._place(button);
+        this._arrange();
     }
 
-    _place(button) {
-        const pill = this._pills.get(button);
-        if (!pill || !button.get_stage())
-            return;
-        const r = rectIn(button, this.actor);
-        if (!r)
-            return;
-        const [, w] = pill.get_preferred_width(-1);
-        const [, h] = pill.get_preferred_height(w);
+    // Each pill stands over its app, beside the bar; neighbours keep apart.
+    _arrange() {
         const side = this.host.side;
-        if (side === 'bottom')
-            pill.set_position(Math.round(r.x + r.width / 2 - w / 2), Math.round(r.y - h - GAP - this.barPadding));
-        else if (side === 'left')
-            pill.set_position(Math.round(r.x + r.width + GAP + this.barPadding), Math.round(r.y + r.height / 2 - h / 2));
-        else
-            pill.set_position(Math.round(r.x - w - GAP - this.barPadding), Math.round(r.y + r.height / 2 - h / 2));
+        const along = side === 'bottom' ? 'x' : 'y';
+        const placed = [];
+        for (const [button, pill] of this._pills) {
+            if (!button.get_stage())
+                continue;
+            const r = rectIn(button, this.actor);
+            if (!r)
+                continue;
+            const [, w] = pill.get_preferred_width(-1);
+            const [, h] = pill.get_preferred_height(w);
+            placed.push({pill, r, w, h,
+                centre: along === 'x' ? r.x + r.width / 2 : r.y + r.height / 2,
+                length: along === 'x' ? w : h});
+        }
+        const starts = spreadApart(placed, APART);
+        placed.forEach(({pill, r, w, h}, i) => {
+            const start = Math.round(starts[i]);
+            if (side === 'bottom')
+                pill.set_position(start, Math.round(r.y - h - GAP - this.barPadding));
+            else if (side === 'left')
+                pill.set_position(Math.round(r.x + r.width + GAP + this.barPadding), start);
+            else
+                pill.set_position(Math.round(r.x - w - GAP - this.barPadding), start);
+        });
     }
 
     destroy() {

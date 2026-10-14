@@ -118,3 +118,42 @@ export function darkOn(colors) {
         .reduce((sum, value) => sum + value, 0) / colors.length;
     return luminance > BRIGHT_SURFACE;
 }
+
+// Spreads pills along a line so none overlap: each wants to stand centred
+// at `centre` and is `length` long; pills that would touch move apart as a
+// group, `gap` apart, the group as close to their wishes as it gets.
+// Returns each pill's start, in the order given.
+export function spreadApart(pills, gap) {
+    const order = pills.map((pill, index) => ({...pill, index})).sort((a, b) => a.centre - b.centre);
+    const groups = [];
+    for (const pill of order) {
+        groups.push(group([pill], gap));
+        while (groups.length > 1) {
+            const last = groups[groups.length - 1];
+            const before = groups[groups.length - 2];
+            if (before.start + before.length + gap <= last.start)
+                break;
+            groups.splice(-2, 2, group([...before.pills, ...last.pills], gap));
+        }
+    }
+    const starts = new Array(pills.length);
+    for (const {pills: members, start} of groups) {
+        let at = start;
+        for (const pill of members) {
+            starts[pill.index] = at;
+            at += pill.length + gap;
+        }
+    }
+    return starts;
+}
+
+// A row of pills side by side, its start the mean of what each pill wishes.
+function group(pills, gap) {
+    let offset = 0;
+    let wish = 0;
+    for (const pill of pills) {
+        wish += pill.centre - pill.length / 2 - offset;
+        offset += pill.length + gap;
+    }
+    return {pills, length: offset - gap, start: wish / pills.length};
+}
