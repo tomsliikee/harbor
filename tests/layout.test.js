@@ -34,4 +34,8 @@ test('a symbol by id', () => equal(['org.gnome.Nautilus.desktop', 'app.zen_brows
 test('the longer match wins', () => equal(['libreoffice-writer.desktop', 'org.libreoffice.LibreOffice.writer.desktop',
     'libreoffice-calc.desktop'].map(id => Layout.matchSymbol(id, symbols)), ['lo-writer', 'lo-writer', 'lo']));
 test('a word matches a whole piece only', () => equal(Layout.matchSymbol('org.zenith.App.desktop', symbols), null));
+test('the handle is dark only on white', () => equal(
+    [[[255, 255, 255]], [[245, 244, 250]], [[226, 225, 239]], [[160, 160, 160]], [[18, 26, 60]], [[255, 140, 0]], [[255, 255, 255], [0, 0, 0]], []].map(Layout.darkOn),
+    [true, true, true, false, false, false, false, false]));
+
 done('layout');

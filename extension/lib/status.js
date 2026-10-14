@@ -284,8 +284,18 @@ export class Status extends EventEmitter {
         button.statusLayer = {stack, ring, badge, count, shown: null, counter: null};
         badge.set_pivot_point(0.5, 0.5);
         iconOf(button)?.set_pivot_point(0.5, 0.5);
-        badge.translation_x = Math.round(6 * dock.scale);
-        badge.translation_y = -Math.round(6 * dock.scale);
+        // Ring and badge go with the tile when it lifts or hops.
+        const offset = Math.round(6 * dock.scale);
+        const moving = button.slot ?? tile;
+        const follow = () => {
+            ring.translation_x = moving.translation_x;
+            ring.translation_y = moving.translation_y;
+            badge.translation_x = offset + moving.translation_x;
+            badge.translation_y = -offset + moving.translation_y;
+        };
+        moving.connect('notify::translation-x', follow);
+        moving.connect('notify::translation-y', follow);
+        follow();
     }
 
     paint(button, dock) {

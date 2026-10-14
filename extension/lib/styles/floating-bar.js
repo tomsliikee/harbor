@@ -144,6 +144,7 @@ export class FloatingBarStyle extends Style {
         const before = this._focus;
         this._focus = button;
         before?.slot?.setBacked(false);
+        this._follow(button?.slot ?? null);
         if (!button) {
             this._glide?.stop();
             this._glide = null;
@@ -161,6 +162,25 @@ export class FloatingBarStyle extends Style {
         } else {
             this._startGlide();
         }
+    }
+
+    // The focus shape lifts and hops with its app's slot, as one with it.
+    _follow(slot) {
+        if (this._followed === slot)
+            return;
+        if (this._followed && this._followIds)
+            this._followIds.forEach(id => this._followed.disconnect(id));
+        this._followed = slot;
+        this._followIds = null;
+        const copy = () => {
+            this.glider.translation_x = slot?.translation_x ?? 0;
+            this.glider.translation_y = slot?.translation_y ?? 0;
+        };
+        if (slot) {
+            this._followIds = ['notify::translation-x', 'notify::translation-y', 'destroy']
+                .map(signal => slot.connect(signal, signal === 'destroy' ? () => this._follow(null) : copy));
+        }
+        copy();
     }
 
     _paintGlider() {
@@ -230,6 +250,7 @@ export class FloatingBarStyle extends Style {
     destroy() {
         this._glide?.stop();
         this._glide = null;
+        this._follow(null);
         this._focus = null;
         super.destroy();
     }

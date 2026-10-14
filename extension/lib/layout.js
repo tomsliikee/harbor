@@ -101,3 +101,20 @@ export function matchSymbol(appId, entries) {
     }
     return null;
 }
+
+// Whether a mark on these colours ([r, g, b] in 0–255) should be dark: only
+// on white or nearly white, by relative luminance.
+export const BRIGHT_SURFACE = 0.6;
+
+export function darkOn(colors) {
+    if (colors.length === 0)
+        return false;
+    const linear = c => {
+        const v = c / 255;
+        return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = colors
+        .map(([r, g, b]) => 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b))
+        .reduce((sum, value) => sum + value, 0) / colors.length;
+    return luminance > BRIGHT_SURFACE;
+}

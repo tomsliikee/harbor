@@ -2,6 +2,7 @@
 // edge, keeps it out of the way of windows the way the settings ask, makes
 // room for drops, and opens the menus of its items.
 
+import Gio from 'gi://Gio';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
 import Mtk from 'gi://Mtk';
@@ -14,7 +15,7 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {appMenu, move, pin, placeMenu, unpin} from './appmenu.js';
 import {SPRINGS, expressive, normal, run, spring, springShare, stretch} from './choreo.js';
 import {debug} from './debug.js';
-import {anyOverlaps, fromCenter} from './layout.js';
+import {anyOverlaps, darkOn, fromCenter} from './layout.js';
 import {STATE_MS, animationsOn, ease} from './motion.js';
 import * as Places from './places.js';
 import {ICON_PX} from './settings.js';
@@ -28,6 +29,10 @@ import {rectIn} from './styles/base.js';
 // dock comes: long enough that passing by does nothing.
 const EDGE_MS = 200;
 const HANDLE_MS = 150;
+// How often the handle looks at what lies around it while it shows.
+const HANDLE_LOOK_MS = 1500;
+
+Gio._promisify(Shell.Screenshot.prototype, 'pick_color');
 // How long the dock stays after the pointer has left it.
 const LEAVE_MS = 500;
 // Sizes and paddings are drawn for this icon size and scaled from it.
@@ -622,6 +627,7 @@ export class Dock {
 
     _syncHandle() {
         if (!this._handleWanted()) {
+            this._lookAround(false);
             this._handle.visible = false;
             this._handle.set_scale(1, 1);
             return;
@@ -640,8 +646,66 @@ export class Dock {
         }
         this._handle.set_position(x, y);
         this._handle.set_size(w, h);
-        this._handle.set_style(`background-color: ${this.theme.roles.outline}; border-radius: 3px;`);
+        this._paintHandle();
         this._handle.visible = true;
+        this._lookAround(true);
+    }
+
+    // White on almost everything, black on white or nearly white.
+    _paintHandle() {
+        const ink = this._handleDark ? '#000000' : '#ffffff';
+        this._handle.set_style(`background-color: ${ink}; border-radius: 3px; box-shadow: 0 0 2px rgba(0,0,0,0.18);`);
+    }
+
+    // While the handle shows it reads the screen beside it now and then,
+    // since windows and wallpapers change under it.
+    _lookAround(on) {
+        if (on && !this._handleLook) {
+            this._handleLook = GLib.timeout_add(GLib.PRIORITY_LOW, HANDLE_LOOK_MS, () => {
+                this._lookUnderHandle();
+                return GLib.SOURCE_CONTINUE;
+            });
+            this._lookUnderHandle();
+        } else if (!on && this._handleLook) {
+            GLib.source_remove(this._handleLook);
+            this._handleLook = 0;
+        }
+    }
+
+    async _lookUnderHandle() {
+        const handle = this._handle;
+        if (this._looking || !handle.visible || handle.hover)
+            return;
+        this._looking = true;
+        try {
+            const [x, y] = handle.get_position();
+            const [w, h] = handle.get_size();
+            const m = this.monitor;
+            // Just outside the handle: along its long sides and past its ends.
+            const points = this.vertical
+                ? [[x - 5, y + h * 0.25], [x - 5, y + h * 0.75], [x + w + 5, y + h / 2], [x + w / 2, y - 6], [x + w / 2, y + h + 6]]
+                : [[x + w * 0.25, y - 5], [x + w * 0.75, y - 5], [x + w / 2, y + h + 5], [x - 6, y + h / 2], [x + w + 6, y + h / 2]];
+            this._screenshot ??= new Shell.Screenshot();
+            const colors = [];
+            for (const [px, py] of points) {
+                if (this._gone)
+                    return;
+                const cx = Math.round(Math.min(Math.max(px, m.x), m.x + m.width - 1));
+                const cy = Math.round(Math.min(Math.max(py, m.y), m.y + m.height - 1));
+                const [color] = await this._screenshot.pick_color(cx, cy);
+                if (color)
+                    colors.push([color.red, color.green, color.blue]);
+            }
+            const dark = darkOn(colors);
+            if (!this._gone && dark !== Boolean(this._handleDark)) {
+                this._handleDark = dark;
+                this._paintHandle();
+            }
+        } catch (e) {
+            debug(this, `handle colour: ${e.message}`);
+        } finally {
+            this._looking = false;
+        }
     }
 
     // Under the pointer the handle grows, and with "Show on hover" it
@@ -1033,8 +1097,10 @@ export class Dock {
         this.tooltip.destroy();
         Main.layoutManager.removeChrome(this._container);
         this._container.destroy();
+        this._lookAround(false);
         Main.layoutManager.removeChrome(this._handle);
         this._handle.destroy();
+        this._gone = true;
         Main.layoutManager.removeChrome(this._edge);
         this._edge.destroy();
     }

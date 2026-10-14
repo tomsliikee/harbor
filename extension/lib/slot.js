@@ -2,7 +2,8 @@
 // tile, Show apps, a pebble, a stage) keeps its shape all the time; its
 // state changes the shape's form and size. A free slot shows a shape only
 // for a state: the pointer resting on it, the app starting, or the app
-// asking for attention.
+// asking for attention. Shape and icon are one: a lift or a hop moves the
+// whole slot.
 
 import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
@@ -156,13 +157,13 @@ class HarborSlot extends St.Widget {
         const [x, y] = this._liftOffset(this._hover ? this._lift : 0);
         if (animated) {
             spring(shape, {scale_x: scale, scale_y: scale}, {spring: SPRINGS.hover});
-            spring(this.icon, {translation_x: x, translation_y: y}, {spring: SPRINGS.hover});
+            spring(this, {translation_x: x, translation_y: y}, {spring: SPRINGS.hover});
         } else {
             stopSprings(shape);
-            stopSprings(this.icon, ['translation_x', 'translation_y']);
+            stopSprings(this, ['translation_x', 'translation_y']);
             shape.set_scale(scale, scale);
-            this.icon.translation_x = x;
-            this.icon.translation_y = y;
+            this.translation_x = x;
+            this.translation_y = y;
         }
     }
 
@@ -178,7 +179,7 @@ class HarborSlot extends St.Widget {
             return;
         }
         stopSprings(this.shape);
-        stopSprings(this.icon, ['translation_x', 'translation_y']);
+        stopSprings(this, ['translation_x', 'translation_y']);
         const start = GLib.get_monotonic_time();
         this._beat = -1;
         this._loop = new Clutter.Timeline({actor: this, duration: 1000, repeat_count: -1});
@@ -190,7 +191,7 @@ class HarborSlot extends St.Widget {
         const rest = this._solid && this._backed ? 0 : this._solid?.scale ?? 1;
         if (this._launching) {
             // The shape breathes and changes between circle and cookie on
-            // every beat; the icon hops away from the edge.
+            // every beat; the slot hops away from the edge.
             const phase = (ms % LAUNCH_MS) / LAUNCH_MS;
             const beat = Math.floor(ms / LAUNCH_MS);
             if (beat !== this._beat) {
@@ -201,8 +202,8 @@ class HarborSlot extends St.Widget {
             const scale = rest * (0.8 + 0.2 * breath);
             this.shape.set_scale(scale, scale);
             const [x, y] = this._liftOffset(this._lift * 1.6 * Math.abs(Math.sin(Math.PI * phase)));
-            this.icon.translation_x = x;
-            this.icon.translation_y = y;
+            this.translation_x = x;
+            this.translation_y = y;
             this.icon.rotation_angle_z = 0;
             return;
         }
