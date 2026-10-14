@@ -1,4 +1,4 @@
-// The list of dock styles: eleven are too many for segmented buttons, so
+// The list of dock styles: ten are too many for segmented buttons, so
 // they are grouped rows with a small drawing of each. Four rows show at
 // first, the chosen one always among them; the rest unfold below. The
 // chosen row says in one sentence what its style does, and resting on any
@@ -17,14 +17,13 @@ import {STYLE_INFO, StyleInfoCard} from './styleinfo.js';
 
 export const STYLE_NAMES = {
     'floating-bar': 'Floating bar',
+    'extended-bar': 'Extended bar',
     'shape-stage': 'Shape stage',
     'grouped-block': 'Grouped block',
     'expressive-rail': 'Expressive rail',
-    'status': 'Status',
     'quiet-handle': 'Quiet handle',
     'loud-tile': 'Loud tile',
     'mono-container': 'Mono container',
-    'window-list': 'Window list',
     'pebbles': 'Pebbles',
     'workspace-split': 'Workspace split',
 };
@@ -39,6 +38,18 @@ const DRAW = {
         setSource(cr, r.highest);
         cr.fill();
         dots(cr, r, [8, 13, 18, 23], 22.5, 1.8);
+    },
+    'extended-bar'(cr, r) {
+        DRAW['floating-bar'](cr, r);
+        roundedRect(cr, 8, 4, 16, 11, 3);
+        setSource(cr, r.surf);
+        cr.fill();
+        roundedRect(cr, 10, 6, 12, 3, 1);
+        setSource(cr, r.pc);
+        cr.fill();
+        cr.arc(23, 15, 2.6, 0, 2 * Math.PI);
+        setSource(cr, r.primary);
+        cr.fill();
     },
     'shape-stage'(cr, r) {
         roundedRect(cr, 2, 17, 28, 11, 5.5);
@@ -68,12 +79,6 @@ const DRAW = {
         setSource(cr, r.primary);
         cr.fill();
     },
-    'status'(cr, r) {
-        DRAW['floating-bar'](cr, r);
-        cr.arc(20.5, 18, 3, 0, 2 * Math.PI);
-        setSource(cr, r.primary);
-        cr.fill();
-    },
     'quiet-handle'(cr, r) {
         roundedRect(cr, 9, 25, 14, 2.5, 1.25);
         setSource(cr, r.outline);
@@ -100,15 +105,6 @@ const DRAW = {
             setSource(cr, r.onPc);
             cr.fill();
         });
-    },
-    'window-list'(cr, r) {
-        DRAW['floating-bar'](cr, r);
-        roundedRect(cr, 8, 4, 16, 11, 3);
-        setSource(cr, r.surf);
-        cr.fill();
-        roundedRect(cr, 10, 6, 12, 3, 1);
-        setSource(cr, r.pc);
-        cr.fill();
     },
     'pebbles'(cr, r) {
         [[7, 3.4, r.pc], [16, 4.6, r.sc], [25, 3.4, r.tc]].forEach(([x, radius, color]) => {
@@ -157,7 +153,7 @@ class HarborStyleMini extends St.DrawingArea {
         cr.fill();
         // The drawings sit low on their grid, the way a dock sits on a screen;
         // here they are lifted to the middle of the square.
-        cr.translate(0, this._style === 'window-list' ? -1 : -6);
+        cr.translate(0, this._style === 'extended-bar' ? -1 : -6);
         DRAW[this._style](cr, roles);
         cr.$dispose();
     }

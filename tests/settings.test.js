@@ -24,9 +24,13 @@ test('look switches', () => equal(
         parse('{"inkFocus": 1}').inkFocus, isValid('longHandle', true), isValid('longHandle', 'yes')],
     [true, false, false, true, true, true, false]));
 test('handles fall back per style', () => {
-    const settings = parse('{"handles": {"pebbles": false, "status": "no"}}');
-    equal([settings.handles.pebbles, settings.handles.status, settings.handles['floating-bar']], [false, true, true]);
+    const settings = parse('{"handles": {"pebbles": false, "loud-tile": "no"}}');
+    equal([settings.handles.pebbles, settings.handles['loud-tile'], settings.handles['floating-bar']], [false, true, true]);
 });
+test('status and window list became the extended bar', () => equal(
+    [parse('{"style": "status"}').style, parse('{"style": "window-list"}').style,
+        parse('{"handles": {"window-list": false}}').handles['extended-bar'], 'status' in DEFAULTS.handles],
+    ['extended-bar', 'extended-bar', false, false]));
 test('a handles value must name every style', () => equal(
     [isValid('handles', {pebbles: false}), isValid('handles', DEFAULTS.handles), isValid('motionSpeed', 'slow')],
     [false, true, true]));

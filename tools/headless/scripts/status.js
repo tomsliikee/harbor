@@ -1,5 +1,6 @@
-// Status on the icons and the window list.
-export default async function ({extension, shot, sleep, note, moveTo, click, launch}) {
+// Status on the icons and the window list, then the extended bar with its
+// status pills and a window list on hover.
+export default async function ({extension, shot, sleep, note, moveTo, click, launch, set}) {
     await launch('org.gnome.Ptyxis.desktop');
     await launch('org.gnome.Ptyxis.desktop');
     await launch('org.gnome.Ptyxis.desktop', 3000);
@@ -24,4 +25,20 @@ export default async function ({extension, shot, sleep, note, moveTo, click, lau
     await sleep(1000);
     note(`list open=${dock._menu?.isOpen}`);
     await shot('window-list');
+
+    dock._dropMenu();
+    moveTo(640, 200);
+    set('style', 'extended-bar');
+    status.report('org.gnome.Ptyxis.desktop', {urgent: true});
+    await sleep(1200);
+    const extended = extension._docks.all[0];
+    const style = extended._style;
+    note(`extended: pills=${[...style._pills.values()].map(pill => pill.label.text).join(' | ')}`);
+    await shot('extended-pills');
+    const editor = extended.buttonFor('org.gnome.TextEditor.desktop');
+    const [x, y] = editor.get_transformed_position();
+    moveTo(x + editor.width / 2, y + editor.height / 2);
+    await sleep(1200);
+    note(`extended: hover list open=${extended._menu?.isOpen}`);
+    await shot('extended-hover');
 }

@@ -1,6 +1,6 @@
 // Two monitors, the overview, and switching off and on through every style.
-const STYLES = ['floating-bar', 'shape-stage', 'grouped-block', 'expressive-rail', 'status', 'quiet-handle',
-    'loud-tile', 'mono-container', 'window-list', 'pebbles', 'workspace-split'];
+const STYLES = ['floating-bar', 'extended-bar', 'shape-stage', 'grouped-block', 'expressive-rail', 'quiet-handle',
+    'loud-tile', 'mono-container', 'pebbles', 'workspace-split'];
 export default async function ({extension, shot, sleep, note, moveTo, launch, set, Main}) {
     await launch('org.gnome.Ptyxis.desktop');
     moveTo(600, 300);

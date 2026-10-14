@@ -27,7 +27,7 @@ export default async function ({extension, sleep, note, moveTo, move, click, lau
     win.unmaximize();
     await sleep(600);
 
-    set('style', 'window-list');
+    set('style', 'extended-bar');
     for (const w of global.display.list_all_windows())
         w.minimize();
     await sleep(900);

@@ -20,6 +20,11 @@ export const STYLE_INFO = {
         about: 'The everyday dock. One rounded bar floats a little above the screen edge and carries the apps\' own icons, large and free, with no tile around them. Behind the app in front sits a soft shape in that app\'s tone; when you switch apps, it glides over and changes its form on the way. A line under each icon says what runs: a long bar for the app in front, a short one for a running app, dots for two or three windows and a small wave while an app plays sound. Places and Show apps wait at the end, after a thin divider.',
         suits: 'For everyday use, when the dock should be calm but alive.',
     },
+    'extended-bar': {
+        short: 'The floating bar that says more: status in words, windows on hover.',
+        about: 'The floating bar with two extras. Above an app that downloads something or wants your attention stands a small pill that says so in words, such as "40 % downloaded" or "Wants attention"; the pills stay even when Counts on icons is switched off. And as soon as the pointer rests on an app that has windows, the list of its windows opens by itself, so you can pick the exact window without a click. Everything else works like the floating bar.',
+        suits: 'For following downloads and messages, and for apps with many windows.',
+    },
     'shape-stage': {
         short: 'Every app stands on a shape that gains points with its windows.',
         about: 'Here the shape is the message. Every app stands on an expressive shape of its own, and that shape is the run indicator: a plain circle while the app is closed, and more points the more windows it has open, so one glance shows where the work piles up. The app in front stands on a larger stage in the primary container colour, running apps on the secondary one. Resting the pointer on an app turns its stage into a cookie.',
@@ -35,11 +40,6 @@ export const STYLE_INFO = {
         about: 'The loudest way to say which app has the focus. A rail runs along the whole screen edge, with the run lines right at the edge. The app in front does not stay an icon: it unfolds into a pill that reaches out of the rail and shows its name and how many windows it has. Switching apps folds one pill away and springs the next one open. When the dock appears, the rail rises in the middle and spreads to the full width.',
         suits: 'For big screens, and for knowing what is in front without looking for it.',
     },
-    'status': {
-        short: 'The floating bar, with downloads and waiting apps said in words.',
-        about: 'The floating bar that talks. Above an app that downloads something or wants your attention stands a small pill that says so in words, such as "40 % downloaded" or "Wants attention". The pills stay even when Counts on icons is switched off, because here the status is the point. Everything else works like the floating bar.',
-        suits: 'For following downloads and messages without opening the app.',
-    },
     'quiet-handle': {
         short: 'A compact, calm bar made for hiding away.',
         about: 'The quiet one. A compact bar with less padding and softer corners that draws little attention and is made to be away most of the time. While it is away, a thin handle stays at the edge; rest the pointer on it, or click it when Show on hover is off, and the dock comes back. The icons keep the same size as in every other style; only the frame around them is smaller.',
@@ -54,11 +54,6 @@ export const STYLE_INFO = {
         short: 'One colour for every icon; closed apps fade back.',
         about: 'Calm and uniform. The bar is a round container in the primary container colour, and every icon is drawn as a symbol in one colour, so your accent colour leads and not the app logos. Running apps show at full strength, closed ones fade back, and a primary shape glides behind the app in front.',
         suits: 'For a tidy desktop in a single colour.',
-    },
-    'window-list': {
-        short: 'The floating bar; resting on an app opens its windows.',
-        about: 'The floating bar for people who switch windows a lot. As soon as the pointer rests on an app that has windows, the list of its windows opens by itself, without a click, so you can pick the exact window you want. A click still works as everywhere else: one window focuses or minimises, several show the list.',
-        suits: 'For apps with many windows, like browsers, terminals and editors.',
     },
     'pebbles': {
         short: 'No bar: every app is a pebble that grows near the pointer.',

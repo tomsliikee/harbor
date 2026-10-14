@@ -1,7 +1,7 @@
 // Every style at the bottom, plus left and right for each, with windows open.
 import GLib from 'gi://GLib';
-const STYLES = ['floating-bar', 'shape-stage', 'grouped-block', 'expressive-rail', 'status', 'quiet-handle',
-    'loud-tile', 'mono-container', 'window-list', 'pebbles', 'workspace-split'];
+const STYLES = ['floating-bar', 'extended-bar', 'shape-stage', 'grouped-block', 'expressive-rail', 'quiet-handle',
+    'loud-tile', 'mono-container', 'pebbles', 'workspace-split'];
 export default async function ({extension, shot, sleep, note, moveTo, move, launch, set}) {
     await launch('org.gnome.Ptyxis.desktop');
     await launch('org.gnome.Ptyxis.desktop');

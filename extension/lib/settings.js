@@ -7,9 +7,19 @@ import GLib from 'gi://GLib';
 import {COLOURS} from './palettes.js';
 
 export const STYLES = [
-    'floating-bar', 'shape-stage', 'grouped-block', 'expressive-rail', 'status', 'quiet-handle',
-    'loud-tile', 'mono-container', 'window-list', 'pebbles', 'workspace-split',
+    'floating-bar', 'extended-bar', 'shape-stage', 'grouped-block', 'expressive-rail', 'quiet-handle',
+    'loud-tile', 'mono-container', 'pebbles', 'workspace-split',
 ];
+// Styles that were folded into another: old id → new id.
+const FOLDED = {'status': 'extended-bar', 'window-list': 'extended-bar'};
+
+// The value of a style key under its new id, or under an old one folded into it.
+function byStyle(source, style) {
+    if (style in source)
+        return source[style];
+    const old = Object.keys(FOLDED).find(id => FOLDED[id] === style && id in source);
+    return old ? source[old] : undefined;
+}
 export const POSITIONS = ['left', 'bottom', 'right'];
 export const ICON_SIZES = ['small', 'medium', 'large', 'huge'];
 export const WHEN_WINDOW_CLOSE = ['stay', 'make-room', 'hide'];
@@ -41,7 +51,7 @@ function perApp(value) {
 
 function perStyle(value, fallback) {
     const source = value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
-    return Object.fromEntries(STYLES.map(style => [style, typeof source[style] === 'boolean' ? source[style] : fallback]));
+    return Object.fromEntries(STYLES.map(style => [style, typeof byStyle(source, style) === 'boolean' ? byStyle(source, style) : fallback]));
 }
 
 export const DEFAULTS = Object.freeze({
@@ -79,7 +89,7 @@ export function normalize(raw) {
     const source = raw !== null && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const settings = {};
     for (const [key, fallback] of Object.entries(DEFAULTS)) {
-        const value = source[key];
+        const value = key === 'style' ? FOLDED[source.style] ?? source.style : source[key];
         if (PER_APP.includes(key))
             settings[key] = perApp(value);
         else if (PER_STYLE.includes(key))

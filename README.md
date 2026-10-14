@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Harbor</h1>
-  <p><strong>A dock for GNOME Shell in Toms Expressive Design: pinned and running apps in eleven styles, with its settings in the top bar instead of a window.</strong></p>
+  <p><strong>A dock for GNOME Shell in Toms Expressive Design: pinned and running apps in ten styles, with its settings in the top bar instead of a window.</strong></p>
 
   <p>
     <img src="https://img.shields.io/badge/Platform-GNOME%20Shell%2050-neutral?style=flat-square" alt="Platform" />
@@ -46,19 +46,18 @@ Harbor sends no notifications, reads nothing from the network and keeps one smal
 
 ## The Styles
 
-![All eleven styles at the bottom of the screen](readmestuff/styles.png)
+![All ten styles at the bottom of the screen](readmestuff/styles.png)
 
 | Style | What it looks like | What is special |
 | :--- | :--- | :--- |
 | **Floating bar** | A rounded bar floating above the edge | The default. The focused app's tile is an ink square that glides from app to app; the run line hangs under the tiles in the bar's padding. |
+| **Extended bar** | The floating bar | Says more: status in words above an app ("64 % downloaded", "Wants attention", even with **Counts on icons** off), and an app's window list opens as soon as the pointer rests on it. |
 | **Shape stage** | A pill; every app stands on a shape | The shape is the run indicator: a circle while closed, more points with more windows. |
 | **Grouped block** | Three named groups instead of one bar | The focused app's segment turns fully round and fills with ink (or primary, with **Ink focus** off). |
 | **Expressive rail** | A rail along the whole edge | The focused app unfolds into a pill with its name. Always keeps its room unless set to **Hide**. |
-| **Status** | The floating bar | Status is said out loud: "64 % downloaded", "Wants attention", even with **Counts on icons** off. |
 | **Quiet handle** | A compact, calmer bar | Less padding and softer corners; made for a dock that is often away. |
 | **Loud tile** | The floating bar led by a large tile | The tile shows the focused app with its window count; without one, all open windows. |
 | **Mono container** | A round bar in one colour | Symbols stand free, without tiles, always in one colour; closed apps fade back; a primary circle glides behind the focused app. |
-| **Window list** | The floating bar | An app's window list opens as soon as the pointer rests on it. |
 | **Pebbles** | No bar; every app floats on its own | Pebbles near the pointer grow; the one under it turns into a cookie and shows its name. Pebbles appear one by one. |
 | **Workspace split** | Three floating parts | Workspaces as buttons; apps without a window on this workspace fade back. |
 
@@ -106,7 +105,7 @@ With **Symbolic icons** off, the apps' own colour icons rest on the same tiles. 
 
 | Setting | Choices (default in bold) | What it does |
 | :--- | :--- | :--- |
-| **Dock style** | **Floating bar**, Shape stage, Grouped block, Expressive rail, Status, Quiet handle, Loud tile, Mono container, Window list, Pebbles, Workspace split | How the dock looks. Four styles show first; the rest unfold. The chosen style says in one sentence what it does; resting on a style shows a card with the whole story. |
+| **Dock style** | **Floating bar**, Extended bar, Shape stage, Grouped block, Expressive rail, Quiet handle, Loud tile, Mono container, Pebbles, Workspace split | How the dock looks. Four styles show first; the rest unfold. The chosen style says in one sentence what it does; resting on a style shows a card with the whole story. |
 | **Where the dock sits** | Left, **Bottom**, Right | The screen edge. |
 | **Handle when away** | **On**, Off, for each style on its own | A thin grip stays at the edge while the dock is away. It reads the screen beside it every **1.5 s** and is white, or black on white or nearly white ground. |
 | **Show on hover** | **On**, Off | Resting on the handle brings the dock; off, it takes a click. |
@@ -224,7 +223,7 @@ flowchart TD
         Settings["SettingsStore<br/><b>settings.json, watched</b>"]
         Symbols["Symbols<br/><b>catalog.json & SVGs</b>"]
         Docks["Docks<br/><b>one per monitor</b>"]
-        Style["Dock style<br/><b>one of eleven</b>"]
+        Style["Dock style<br/><b>one of ten</b>"]
         Top["Top bar mark & menu"]
     end
 
@@ -267,12 +266,12 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 
 | Area | Evidence |
 | :--- | :--- |
-| **Settings, shapes, springs, words, layout rules, matching symbols to app ids** | ***Tested:*** 58 unit tests, 26 real app ids among them. |
+| **Settings, shapes, springs, words, layout rules, matching symbols to app ids** | ***Tested:*** 59 unit tests, 26 real app ids among them. |
 | **Symbols on tiles in every style, the picker, choosing, Automatic, Symbolic icons off, symbols in the top bar menu** | ***Tested*** in the headless shell (`styles`, `symbols` scripts), light and dark. |
 | **Round tiles centred in the bar, ink focus, light dock on a dark desktop, long handle, a hovered tile lifting as one, the handle's colour** | ***Tested*** in the headless shell (`styles` at every edge, `look` script light and dark: white handle over a dark window, black over a light one). |
 | **Appearing and going in every style, out of and into the handle, focus gliding, hover, start, attention, counts** | ***Tested*** in the headless shell, frame by frame in slow motion (`motion` script, also with `HARBOR_HANDLES=on`, `HARBOR_LONG=on`, `HARBOR_SIDE=left`). |
 | **Make room for the app in front, edge, handle per style, see-through, minimising into the icon** | ***Tested*** in the headless shell (`behave` script). |
-| **All eleven styles at three edges, light and dark** | ***Tested*** in the headless shell by screenshot. |
+| **All ten styles at three edges, light and dark** | ***Tested*** in the headless shell by screenshot. |
 | **Clicks, right-click menu, window list, pinning by drop, making room** | ***Tested*** in the headless shell with a virtual pointer. |
 | **The edge with a real touchpad, the room kept by Stay and the rail, smoothness on real hardware, Always moving on battery** | ***Built.*** The edge was tested with a virtual pointer; the rest was not measured. |
 | **Two monitors, overview, switching off and on through every style** | ***Tested*** in the headless shell, beside **Tally**, **Ember** and **Torch**, without errors. |
@@ -301,6 +300,7 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 - **Show apps is a pebble too** in **Pebbles**, as are the drives and the trash.
 - **The icons shrink by themselves** when the dock would not fit its edge, the way Dash to Dock does it; it is not a setting.
 - **A side dock leaves out long text:** the loud tile shows only its number, and the group names of **Grouped block** are hidden at the left and right edge.
+- **Status and Window list became one style, Extended bar:** both were the floating bar with one extra each, so they now come together; a saved `status` or `window-list` turns into `extended-bar`.
 - **Pills that reach beyond the dock** (status sentences, the rail's pill, pebble names) live on a layer that asks for no room, so the dock keeps its own size.
 
 ---
