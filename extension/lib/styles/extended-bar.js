@@ -66,7 +66,8 @@ export class ExtendedBarStyle extends FloatingBarStyle {
         }
         pill.label.text = sentence;
         const roles = this.host.theme.roles;
-        pill.set_style(`background-color: ${roles.on}; color: ${roles.bright};`);
+        // In the bar's colour with a thin rim, so it reads on dark and light ground.
+        pill.set_style(`background-color: ${this.barColor}; color: ${roles.on}; border: 1px solid ${roles.outVar};`);
         this._place(button);
     }
 
