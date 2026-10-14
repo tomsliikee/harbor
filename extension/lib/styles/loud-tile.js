@@ -77,12 +77,12 @@ export class LoudTileStyle extends FloatingBarStyle {
 
     // A glyph on primary; an app's own icon stands free.
     _paintLoudPlace() {
-        const roles = this.host.theme.roles;
+        const ink = this.focusInk();
         const real = this._loudApp && !this._loudGlyph?.symbolic;
         this.loudPlace.set_style(real
             ? 'background-color: transparent;'
-            : `background-color: ${roles.primary}; color: ${roles.onPrimary}; border-radius: ${this.px(16)}px;`);
-        paintGlyph(this._loudGlyph, roles.onPrimary);
+            : `background-color: ${ink.fill}; color: ${ink.on}; border-radius: ${this.px(16)}px;`);
+        paintGlyph(this._loudGlyph, ink.on);
     }
 
     revealItems() {

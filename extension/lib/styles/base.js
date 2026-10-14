@@ -16,7 +16,7 @@ import {HarborAppButton} from '../appbutton.js';
 import {SPRINGS, expressive, spring} from '../choreo.js';
 import {GLYPH_SHARE, appGlyph, paintGlyph} from '../icon.js';
 import {mix, rgba, warn} from '../palettes.js';
-import {BLOOM, COOKIE, TILE} from '../shapes.js';
+import {BLOOM, CIRCLE, COOKIE} from '../shapes.js';
 import {HarborSlot} from '../slot.js';
 import {symbolGicon} from '../symbols.js';
 
@@ -302,7 +302,7 @@ export class Style {
             solid ??= this.tileRest(button);
         } else if (button.kind === 'show-apps') {
             icon = new St.Icon({gicon: symbolGicon('apps'), fallback_icon_name: 'view-app-grid-symbolic', icon_size: glyph});
-            solid ??= {form: TILE, hoverForm: BLOOM, scale: 1, hoverScale: 1};
+            solid ??= {form: CIRCLE, hoverForm: BLOOM, scale: 1, hoverScale: 1};
         } else {
             icon = new St.Icon({icon_size: glyph});
             button.placeIcon = icon;
@@ -317,7 +317,7 @@ export class Style {
     // How an item's tile rests and how it turns under the pointer; null for
     // a style whose icons stand free.
     tileRest(_button) {
-        return {form: TILE, hoverForm: COOKIE, scale: 1, hoverScale: 1};
+        return {form: CIRCLE, hoverForm: COOKIE, scale: 1, hoverScale: 1};
     }
 
     // An app's glyph for a tile of `tile` px: its symbol or its own icon.
@@ -339,12 +339,29 @@ export class Style {
         return mix(roles[tone], roles.primary, theme.scheme === 'light' ? strength : strength * 0.8);
     }
 
-    // The colour of an item's shape: its tone for an app.
+    // The focused app's shape and its glyph: ink (black, white in the dark)
+    // with "Ink focus", else primary. {fill, on}
+    focusInk() {
+        const roles = this.host.theme.roles;
+        return this.host.settings.inkFocus
+            ? {fill: roles.on, on: roles.low}
+            : {fill: roles.primary, on: roles.onPrimary};
+    }
+
+    // One quiet colour for everything that does not run.
+    neutralColor() {
+        const theme = this.host.theme;
+        const roles = theme.roles;
+        return theme.scheme === 'light' ? roles.low : mix(roles.highest, roles.on, 0.12);
+    }
+
+    // The colour of an item's shape: an app's tone while it runs, else
+    // the neutral one.
     slotColor(button) {
         const roles = this.host.theme.roles;
         if (button.kind === 'app')
-            return this.toneColor(button.item.tone, 0.06);
-        return button.kind === 'show-apps' ? roles.tc : roles.high;
+            return button.item.windows.length > 0 ? this.toneColor(button.item.tone, 0.22) : this.neutralColor();
+        return button.kind === 'show-apps' ? roles.tc : this.neutralColor();
     }
 
     // The colour of a glyph on its shape (or on the bar).
@@ -354,8 +371,8 @@ export class Style {
             if (this.host.attentionFor(button))
                 return warn.on;
             if (this.isFocusShown(button))
-                return roles.onPrimary;
-            return roles[TONE_TEXT[button.item.tone]];
+                return this.focusInk().on;
+            return button.item.windows.length > 0 ? roles[TONE_TEXT[button.item.tone]] : roles.onVar;
         }
         return button.kind === 'show-apps' ? roles.onTc : roles.onVar;
     }

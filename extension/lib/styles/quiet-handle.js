@@ -9,7 +9,8 @@ export class QuietHandleStyle extends FloatingBarStyle {
         return this.px(26);
     }
 
+    // Just room for the run line under the tiles.
     get barPadding() {
-        return this.px(4);
+        return this.px(9);
     }
 }

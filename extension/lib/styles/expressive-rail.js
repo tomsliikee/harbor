@@ -143,14 +143,14 @@ export class ExpressiveRailStyle extends Style {
         this.pillCount.text = Words.windows(item.windows.length);
     }
 
-    // The focused app's glyph sits on a primary circle at the pill's start.
+    // The focused app's glyph sits on an ink (or primary) circle at the
+    // pill's start.
     _paintPillPlace() {
-        const roles = this.host.theme.roles;
         const symbolic = this._pillGlyph?.symbolic;
         this.pillPlace.set_style(symbolic
-            ? `background-color: ${roles.primary}; border-radius: ${Math.round(this.pillHeight / 2)}px;`
+            ? `background-color: ${this.focusInk().fill}; border-radius: ${Math.round(this.pillHeight / 2)}px;`
             : 'background-color: transparent;');
-        paintGlyph(this._pillGlyph, roles.onPrimary);
+        paintGlyph(this._pillGlyph, this.focusInk().on);
     }
 
     // The pill unfolds from the focused app's tile toward the screen.

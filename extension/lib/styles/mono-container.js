@@ -11,7 +11,7 @@ const CLOSED_OPACITY = 153;
 
 export class MonoContainerStyle extends FloatingBarStyle {
     get barPadding() {
-        return this.px(8);
+        return this.px(10);
     }
 
     // Fully round at its ends.

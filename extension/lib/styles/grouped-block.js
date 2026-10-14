@@ -1,6 +1,6 @@
 // Grouped block: no shared bar, but three named groups: what is pinned,
 // what else runs, and the places. The focused app's segment turns fully
-// round and fills with primary.
+// round and fills with ink (or primary, with "Ink focus" off).
 
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
@@ -107,7 +107,7 @@ export class GroupedBlockStyle extends Style {
         const item = button.item;
         const focused = button.kind === 'app' && item.focused;
         const attention = button.kind === 'app' && this.host.attentionFor(button);
-        const background = attention ? this.host.theme.warn : focused ? roles.primary : roles.bright;
+        const background = attention ? this.host.theme.warn : focused ? this.focusInk().fill : roles.bright;
         const radii = this.radii(button, focused).map(r => `${r}px`).join(' ');
         const pad = this.host.vertical ? this.px(6) : this.px(8);
         // Each segment casts its own shadow, so it pops up with it.
@@ -119,7 +119,7 @@ export class GroupedBlockStyle extends Style {
         button.dots.destroy_all_children();
         for (let i = 0; i < count; i++) {
             const dot = new St.Widget({width: this.px(5), height: this.px(5)});
-            dot.set_style(`background-color: ${focused ? roles.onPrimary : roles.onVar}; border-radius: ${this.px(3)}px;`);
+            dot.set_style(`background-color: ${focused ? this.focusInk().on : roles.onVar}; border-radius: ${this.px(3)}px;`);
             button.dots.add_child(dot);
         }
         button.dots.height = this.px(5);

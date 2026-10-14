@@ -1,6 +1,7 @@
 // Floating bar: one rounded bar that floats above the edge. Every app rests
-// on a tile in its tone; the focused app's tile is a primary one that
-// glides from app to app, and a line under each says what runs.
+// on a round tile, in its tone while it runs; the focused app's tile is an
+// ink (or primary) square that glides from app to app, and a line under
+// each, in the bar's padding, says what runs.
 
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
@@ -44,12 +45,12 @@ export class FloatingBarStyle extends Style {
     }
 
     get barPadding() {
-        return this.px(8);
+        return this.px(12);
     }
 
     // The colour of the focus shape behind an app.
     focusColor(_button) {
-        return this.host.theme.roles.primary;
+        return this.focusInk().fill;
     }
 
     // The focus shape at rest: a tile like the others.
@@ -69,17 +70,21 @@ export class FloatingBarStyle extends Style {
     fill(button) {
         const side = this.host.side;
         const vertical = this.host.vertical;
-        // The run line sits between the icon and the screen edge.
-        const content = box(!vertical, 'harbor-item-box');
+        // The run line hangs between the tile and the screen edge, in the
+        // bar's padding, so the tile stays in the middle of the bar.
+        const content = new St.Widget({layout_manager: new Clutter.BinLayout(), style_class: 'harbor-item-box'});
         const slot = this.makeSlot(button);
         const run = new HarborRunLine({theme: this.host.theme, vertical, scale: this.s});
-        if (side === 'left') {
-            content.add_child(run);
-            content.add_child(slot);
-        } else {
-            content.add_child(slot);
-            content.add_child(run);
-        }
+        // From the middle of the tile to the middle of the line.
+        const out = Math.round(this.slotSize / 2 + this.px(2) + (vertical ? run.width : run.height) / 2);
+        run.x_align = Clutter.ActorAlign.CENTER;
+        run.y_align = Clutter.ActorAlign.CENTER;
+        if (vertical)
+            run.translation_x = side === 'left' ? -out : out;
+        else
+            run.translation_y = out;
+        content.add_child(slot);
+        content.add_child(run);
         // Show apps and places carry no run line, but keep the same rhythm.
         if (button.kind !== 'app')
             run.opacity = 0;
@@ -107,7 +112,7 @@ export class FloatingBarStyle extends Style {
         const roles = this.host.theme.roles;
         const vertical = this.host.vertical;
         const pad = this.barPadding;
-        this.body.set_style(`padding: ${pad}px ${pad + this.px(4)}px; spacing: ${this.gap}px;`);
+        this.body.set_style(`padding: ${pad}px; spacing: ${this.gap}px;`);
         this.bar(this.body, this.tileStyle(roles.highest, this.barRadius, this.host.barAlpha));
         this.apps.set_style(`spacing: ${this.gap}px;`);
         this.ends.set_style(`spacing: ${this.gap}px;`);
