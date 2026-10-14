@@ -205,6 +205,32 @@
     border-radius: 20px;
 }
 
+.harbor-badge {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    border-radius: 13px;
+}
+
+.harbor-window-list .harbor-menu-content {
+    width: 264px;
+}
+
+.harbor-list-head {
+    spacing: 8px;
+    padding-bottom: 4px;
+}
+
+.harbor-list-note {
+    padding: 4px 8px 0 8px;
+}
+
+.harbor-close {
+    width: 32px;
+    height: 32px;
+    border-radius: 16px;
+}
+
 .harbor-scheme-blue-light.harbor-peek {
     background-color: #edecfb;
     color: #191b25;
@@ -291,6 +317,11 @@
 
 .harbor-scheme-blue-light .harbor-selected .harbor-row-subtitle {
     color: #0033c2;
+}
+
+.harbor-scheme-blue-light .harbor-close:hover,
+.harbor-scheme-blue-light .harbor-close:focus {
+    background-color: #e2e1ef;
 }
 
 .harbor-scheme-blue-dark.harbor-peek {
@@ -381,6 +412,11 @@
     color: #dee1ff;
 }
 
+.harbor-scheme-blue-dark .harbor-close:hover,
+.harbor-scheme-blue-dark .harbor-close:focus {
+    background-color: #33343f;
+}
+
 .harbor-scheme-violet-light.harbor-peek {
     background-color: #f3ebfa;
     color: #1d1a24;
@@ -467,6 +503,11 @@
 
 .harbor-scheme-violet-light .harbor-selected .harbor-row-subtitle {
     color: #5a00c6;
+}
+
+.harbor-scheme-violet-light .harbor-close:hover,
+.harbor-scheme-violet-light .harbor-close:focus {
+    background-color: #e8dfee;
 }
 
 .harbor-scheme-violet-dark.harbor-peek {
@@ -557,6 +598,11 @@
     color: #eaddff;
 }
 
+.harbor-scheme-violet-dark .harbor-close:hover,
+.harbor-scheme-violet-dark .harbor-close:focus {
+    background-color: #37333e;
+}
+
 .harbor-scheme-green-light.harbor-peek {
     background-color: #e6f1e3;
     color: #151e15;
@@ -643,6 +689,11 @@
 
 .harbor-scheme-green-light .harbor-selected .harbor-row-subtitle {
     color: #005321;
+}
+
+.harbor-scheme-green-light .harbor-close:hover,
+.harbor-scheme-green-light .harbor-close:focus {
+    background-color: #dbe5d7;
 }
 
 .harbor-scheme-green-dark.harbor-peek {
@@ -733,6 +784,11 @@
     color: #67ff8d;
 }
 
+.harbor-scheme-green-dark .harbor-close:hover,
+.harbor-scheme-green-dark .harbor-close:focus {
+    background-color: #2e372e;
+}
+
 .harbor-scheme-orange-light.harbor-peek {
     background-color: #ffe9e3;
     color: #271813;
@@ -819,6 +875,11 @@
 
 .harbor-scheme-orange-light .harbor-selected .harbor-row-subtitle {
     color: #832700;
+}
+
+.harbor-scheme-orange-light .harbor-close:hover,
+.harbor-scheme-orange-light .harbor-close:focus {
+    background-color: #f9ddd4;
 }
 
 .harbor-scheme-orange-dark.harbor-peek {
@@ -909,6 +970,11 @@
     color: #ffdbd0;
 }
 
+.harbor-scheme-orange-dark .harbor-close:hover,
+.harbor-scheme-orange-dark .harbor-close:focus {
+    background-color: #42312b;
+}
+
 .harbor-scheme-pink-light.harbor-peek {
     background-color: #ffe8ec;
     color: #26181b;
@@ -997,6 +1063,11 @@
     color: #8f0044;
 }
 
+.harbor-scheme-pink-light .harbor-close:hover,
+.harbor-scheme-pink-light .harbor-close:focus {
+    background-color: #f6dce1;
+}
+
 .harbor-scheme-pink-dark.harbor-peek {
     background-color: #2a1c1f;
     color: #f6dce1;
@@ -1083,4 +1154,9 @@
 
 .harbor-scheme-pink-dark .harbor-selected .harbor-row-subtitle {
     color: #ffd9e1;
+}
+
+.harbor-scheme-pink-dark .harbor-close:hover,
+.harbor-scheme-pink-dark .harbor-close:focus {
+    background-color: #413034;
 }

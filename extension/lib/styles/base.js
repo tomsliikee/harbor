@@ -43,6 +43,14 @@ export class Style {
         return this.host.vertical ? 16 : 24;
     }
 
+    get loudStatus() {
+        return false;
+    }
+
+    get barColor() {
+        return this.host.theme.roles.highest;
+    }
+
     // Whether the bar's background follows nearby windows (85 % / 100 %).
     get hasBar() {
         return true;

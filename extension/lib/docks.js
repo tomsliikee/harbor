@@ -45,6 +45,11 @@ export class Docks {
             dock.update(snapshot);
     }
 
+    repaint() {
+        for (const dock of this._docks)
+            dock.repaint();
+    }
+
     windowsChanged() {
         for (const dock of this._docks)
             dock.windowsChanged();

@@ -11,6 +11,7 @@ import {Model} from './lib/model.js';
 import {Places} from './lib/places.js';
 import {Popup} from './lib/popup.js';
 import {SettingsStore} from './lib/settings.js';
+import {Status} from './lib/status.js';
 import {ThemeController} from './lib/theme.js';
 
 const DASH_TO_DOCK = 'dash-to-dock@micxgx.gmail.com';
@@ -24,14 +25,14 @@ export default class HarborExtension extends Extension {
         this._theme = new ThemeController(this._settings.current.colour);
         this._model = new Model();
         this._places = new Places();
+        this._status = new Status(this._theme);
         this._docks = new Docks({
             theme: this._theme,
             model: this._model,
             places: this._places,
-            status: null,
+            status: this._status,
             settings: () => this._settings.current,
             onState: () => this._queueRender(),
-            showWindowList: null,
         });
 
         this._indicator = new HarborIndicator(this._theme);
@@ -57,6 +58,7 @@ export default class HarborExtension extends Extension {
         this._model.connect('changed', () => this._render());
         this._model.connect('geometry', () => this._docks.windowsChanged());
         this._places.connect('changed', () => this._docks.update(this._model.snapshot));
+        this._status.connect('changed', () => this._docks.repaint());
         this._render();
     }
 
@@ -69,6 +71,8 @@ export default class HarborExtension extends Extension {
         this._docks = null;
         this._places.destroy();
         this._places = null;
+        this._status.destroy();
+        this._status = null;
         this._indicator.destroy();
         this._popup = null;
         this._indicator = null;
@@ -106,8 +110,18 @@ export default class HarborExtension extends Extension {
         });
     }
 
+    // A click in the menu acts like one in the dock; a list opens there.
     _activate(entry) {
-        Actions.primary(entry, {onList: () => Actions.cycle(entry, 1)});
+        const dock = this._docks.all[0];
+        Actions.primary(entry, {onList: () => {
+            const button = dock?.buttonFor(entry.id);
+            if (button) {
+                dock.reveal();
+                dock.showWindowList(button);
+            } else {
+                Actions.cycle(entry, 1);
+            }
+        }});
     }
 
     _checkDashToDock() {

@@ -18,6 +18,7 @@ import {STATE_MS, ease} from './motion.js';
 import * as Places from './places.js';
 import {ICON_PX} from './settings.js';
 import {Tooltip} from './tooltip.js';
+import {windowList} from './windowlist.js';
 import {makeStyle} from './styles/index.js';
 
 // GNOME's own numbers for the hot corner: a firm push, not a brush.
@@ -205,7 +206,25 @@ export class Dock {
     }
 
     showWindowList(button) {
-        this._shared.showWindowList?.(button, this);
+        this._openMenu(windowList(button, this.side, this.theme));
+    }
+
+    // A style that shows status loudly keeps it with the switch off.
+    get loudStatus() {
+        return this._style?.loudStatus ?? false;
+    }
+
+    // The colour around a count, so it reads as cut out of the bar.
+    get barColor() {
+        return this._style?.barColor ?? null;
+    }
+
+    repaint() {
+        this._style?.repaint();
+    }
+
+    buttonFor(appId) {
+        return this._style?.buttonFor(appId) ?? null;
     }
 
     // Keeps the dock up while a menu of it is open.
