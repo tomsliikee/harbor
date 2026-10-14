@@ -1,6 +1,8 @@
 // The list of dock styles: eleven are too many for segmented buttons, so
 // they are grouped rows with a small drawing of each. Four rows show at
-// first, the chosen one always among them; the rest unfold below.
+// first, the chosen one always among them; the rest unfold below. The
+// chosen row says in one sentence what its style does, and resting on any
+// row tells the whole story on a card beside the menu.
 
 import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
@@ -11,6 +13,7 @@ import {ease} from '../motion.js';
 import {roundedRect, setSource, shapePath} from '../paint.js';
 import {text} from '../text.js';
 import {HarborChevron} from './chevron.js';
+import {STYLE_INFO, StyleInfoCard} from './styleinfo.js';
 
 export const STYLE_NAMES = {
     'floating-bar': 'Floating bar',
@@ -166,6 +169,13 @@ class HarborStyleList extends St.BoxLayout {
         super._init({orientation: Clutter.Orientation.VERTICAL, style_class: 'harbor-rows', x_expand: true});
         this._open = false;
         this._chosen = null;
+        this._card = new StyleInfoCard({theme, names: STYLE_NAMES, mini: style => new HarborStyleMini({style, theme})});
+        this.connect('destroy', () => this._card.destroy());
+        // The menu closing takes the card with it.
+        this.connect('notify::mapped', () => {
+            if (!this.mapped)
+                this._card.hide();
+        });
         this._rows = STYLES.map(style => {
             const row = new St.Button({
                 style_class: 'harbor-row harbor-style-row',
@@ -175,13 +185,21 @@ class HarborStyleList extends St.BoxLayout {
             });
             const box = new St.BoxLayout({style_class: 'harbor-row-box', x_expand: true});
             box.add_child(new HarborStyleMini({style, theme}));
-            box.add_child(text('body-medium', {expand: true, text: STYLE_NAMES[style]}));
-            const check = new St.Icon({icon_name: 'object-select-symbolic', icon_size: 16, visible: false});
+            const words = new St.BoxLayout({orientation: Clutter.Orientation.VERTICAL, x_expand: true, y_align: Clutter.ActorAlign.CENTER});
+            words.add_child(text('body-medium', {text: STYLE_NAMES[style]}));
+            const short = text('label', {styleClass: 'harbor-row-subtitle', wrap: true, text: STYLE_INFO[style].short});
+            short.visible = false;
+            words.add_child(short);
+            box.add_child(words);
+            const check = new St.Icon({icon_name: 'object-select-symbolic', icon_size: 16, visible: false, y_align: Clutter.ActorAlign.CENTER});
             box.add_child(check);
             row.set_child(box);
             row.connect('clicked', () => onPick(style));
+            row.connect('notify::hover', () => this._rested(style, row, row.hover));
+            row.connect('key-focus-in', () => this._rested(style, row, true));
+            row.connect('key-focus-out', () => this._rested(style, row, false));
             this.add_child(row);
-            return {style, row, check};
+            return {style, row, check, short};
         });
         this._more = new St.Button({style_class: 'harbor-row harbor-more-row', can_focus: true, x_expand: true});
         const moreBox = new St.BoxLayout({style_class: 'harbor-row-box', x_expand: true});
@@ -196,8 +214,9 @@ class HarborStyleList extends St.BoxLayout {
 
     select(style) {
         this._chosen = style;
-        for (const {style: name, row, check} of this._rows) {
+        for (const {style: name, row, check, short} of this._rows) {
             check.visible = name === style;
+            short.visible = name === style;
             if (name === style)
                 row.add_style_class_name('harbor-selected');
             else
@@ -206,8 +225,17 @@ class HarborStyleList extends St.BoxLayout {
         this._layout();
     }
 
+    _rested(style, row, on) {
+        if (on)
+            this._card.showSoon(style, row);
+        else
+            this._card.hideSoon();
+    }
+
     setOpen(open, {animated = true} = {}) {
         this._open = open;
+        if (!open)
+            this._card.hide();
         this._moreChevron.setOpen(open, {animated});
         this._layout(animated);
     }

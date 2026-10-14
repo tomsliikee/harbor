@@ -74,7 +74,24 @@
 
 .harbor-style-row {
     padding: 8px 12px;
-    height: 48px;
+}
+
+.harbor-style-row .harbor-row-subtitle {
+    padding-top: 2px;
+}
+
+/* The card beside the menu that tells what a dock style does */
+
+.harbor-style-info {
+    width: 300px;
+    padding: 16px 18px 18px 18px;
+    spacing: 10px;
+    border-radius: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.harbor-style-info-head {
+    spacing: 12px;
 }
 
 .harbor-more-row {
@@ -245,6 +262,11 @@
 
 .harbor-scheme .harbor-muted {
     color: $onVar;
+}
+
+.harbor-scheme.harbor-style-info {
+    background-color: $surf;
+    color: $on;
 }
 
 .harbor-scheme.harbor-popup {

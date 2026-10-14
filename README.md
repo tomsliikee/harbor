@@ -89,7 +89,7 @@ Every style works at the **left**, **bottom** and **right** edge (*tested* in th
 
 | Setting | Choices (default in bold) | What it does |
 | :--- | :--- | :--- |
-| **Dock style** | **Floating bar**, Shape stage, Grouped block, Expressive rail, Status, Quiet handle, Loud tile, Mono container, Window list, Pebbles, Workspace split | How the dock looks. Four styles show first; the rest unfold. |
+| **Dock style** | **Floating bar**, Shape stage, Grouped block, Expressive rail, Status, Quiet handle, Loud tile, Mono container, Window list, Pebbles, Workspace split | How the dock looks. Four styles show first; the rest unfold. The chosen style says in one sentence what it does; resting on a style shows a card with the whole story. |
 | **Where the dock sits** | Left, **Bottom**, Right | The screen edge. |
 | **Handle when away** | **On**, Off, for each style on its own | A thin grip stays at the edge while the dock is away. |
 | **Show on hover** | **On**, Off | Resting on the handle brings the dock; off, it takes a click. |

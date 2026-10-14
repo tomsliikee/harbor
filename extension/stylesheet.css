@@ -76,7 +76,24 @@
 
 .harbor-style-row {
     padding: 8px 12px;
-    height: 48px;
+}
+
+.harbor-style-row .harbor-row-subtitle {
+    padding-top: 2px;
+}
+
+/* The card beside the menu that tells what a dock style does */
+
+.harbor-style-info {
+    width: 300px;
+    padding: 16px 18px 18px 18px;
+    spacing: 10px;
+    border-radius: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.harbor-style-info-head {
+    spacing: 12px;
 }
 
 .harbor-more-row {
@@ -246,6 +263,11 @@
     color: #444654;
 }
 
+.harbor-scheme-blue-light.harbor-style-info {
+    background-color: #edecfb;
+    color: #191b25;
+}
+
 .harbor-scheme-blue-light.harbor-popup {
     background-color: #edecfb;
     color: #191b25;
@@ -337,6 +359,11 @@
 
 .harbor-scheme-blue-dark .harbor-muted {
     color: #c5c5d6;
+}
+
+.harbor-scheme-blue-dark.harbor-style-info {
+    background-color: #1d1f29;
+    color: #e2e1ef;
 }
 
 .harbor-scheme-blue-dark.harbor-popup {
@@ -432,6 +459,11 @@
     color: #4a4453;
 }
 
+.harbor-scheme-violet-light.harbor-style-info {
+    background-color: #f3ebfa;
+    color: #1d1a24;
+}
+
 .harbor-scheme-violet-light.harbor-popup {
     background-color: #f3ebfa;
     color: #1d1a24;
@@ -523,6 +555,11 @@
 
 .harbor-scheme-violet-dark .harbor-muted {
     color: #ccc3d5;
+}
+
+.harbor-scheme-violet-dark.harbor-style-info {
+    background-color: #221e28;
+    color: #e8dfee;
 }
 
 .harbor-scheme-violet-dark.harbor-popup {
@@ -618,6 +655,11 @@
     color: #3e4a3d;
 }
 
+.harbor-scheme-green-light.harbor-style-info {
+    background-color: #e6f1e3;
+    color: #151e15;
+}
+
 .harbor-scheme-green-light.harbor-popup {
     background-color: #e6f1e3;
     color: #151e15;
@@ -709,6 +751,11 @@
 
 .harbor-scheme-green-dark .harbor-muted {
     color: #bdcaba;
+}
+
+.harbor-scheme-green-dark.harbor-style-info {
+    background-color: #192219;
+    color: #dbe5d7;
 }
 
 .harbor-scheme-green-dark.harbor-popup {
@@ -804,6 +851,11 @@
     color: #58423a;
 }
 
+.harbor-scheme-orange-light.harbor-style-info {
+    background-color: #ffe9e3;
+    color: #271813;
+}
+
 .harbor-scheme-orange-light.harbor-popup {
     background-color: #ffe9e3;
     color: #271813;
@@ -895,6 +947,11 @@
 
 .harbor-scheme-orange-dark .harbor-muted {
     color: #dfc0b6;
+}
+
+.harbor-scheme-orange-dark.harbor-style-info {
+    background-color: #2b1c17;
+    color: #f9ddd4;
 }
 
 .harbor-scheme-orange-dark.harbor-popup {
@@ -990,6 +1047,11 @@
     color: #564146;
 }
 
+.harbor-scheme-pink-light.harbor-style-info {
+    background-color: #ffe8ec;
+    color: #26181b;
+}
+
 .harbor-scheme-pink-light.harbor-popup {
     background-color: #ffe8ec;
     color: #26181b;
@@ -1081,6 +1143,11 @@
 
 .harbor-scheme-pink-dark .harbor-muted {
     color: #ddbfc5;
+}
+
+.harbor-scheme-pink-dark.harbor-style-info {
+    background-color: #2a1c1f;
+    color: #f6dce1;
 }
 
 .harbor-scheme-pink-dark.harbor-popup {
