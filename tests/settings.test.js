@@ -14,4 +14,13 @@ test('validity per key', () => equal(
     [isValid('colour', 'pink'), isValid('colour', 'red'), isValid('countsOnIcons', false), isValid('nope', true)],
     [true, false, true, false]));
 
+test('the old huge size is large now', () => equal(parse('{"iconSize": "huge"}').iconSize, 'large'));
+test('handles fall back per style', () => {
+    const settings = parse('{"handles": {"pebbles": false, "status": "no"}}');
+    equal([settings.handles.pebbles, settings.handles.status, settings.handles['floating-bar']], [false, true, true]);
+});
+test('a handles value must name every style', () => equal(
+    [isValid('handles', {pebbles: false}), isValid('handles', DEFAULTS.handles), isValid('motionSpeed', 'slow')],
+    [false, true, true]));
+
 done('settings');

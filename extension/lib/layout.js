@@ -21,10 +21,11 @@ export function anyOverlaps(dockRect, windows) {
     return windows.some(w => !w.minimized && !w.skipTaskbar && w.onMonitor && intersects(dockRect, w.rect));
 }
 
-// The bar is fully opaque while a maximised window touches its edge, and
-// lets the desktop through a little otherwise.
-export function barOpacity(touched) {
-    return touched ? 1 : 0.85;
+// How far each of n items in a row is from the middle, in steps: items
+// appear from the middle outwards. [0..n) → 0 for the middle one(s).
+export function fromCenter(n) {
+    const middle = (n - 1) / 2;
+    return Array.from({length: n}, (_, i) => Math.floor(Math.abs(i - middle)));
 }
 
 // Which workspaces the split style shows: the used ones and the active

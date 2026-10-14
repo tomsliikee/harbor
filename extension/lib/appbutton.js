@@ -3,6 +3,7 @@
 // dragged; how it looks is up to the style that fills it.
 
 import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
@@ -10,6 +11,9 @@ import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 
 import * as Actions from './actions.js';
 import * as Words from './words.js';
+
+// A start shows until the app's next window, or this long.
+const LAUNCH_SECONDS = 10;
 
 export const HarborAppButton = GObject.registerClass({GTypeName: 'HarborAppButton'},
 class HarborAppButton extends St.Button {
@@ -44,7 +48,13 @@ class HarborAppButton extends St.Button {
         this.connect('clicked', (_button, mouse) => this._clicked(mouse));
         this.connect('notify::hover', () => this._hoverChanged());
         this.connect('scroll-event', (_actor, event) => this._scrolled(event));
-        this.connect('destroy', () => this._host.tooltip.hide());
+        this._launchTimer = 0;
+        this.connect('destroy', () => {
+            this._host.tooltip.hide();
+            if (this._launchTimer)
+                GLib.source_remove(this._launchTimer);
+            this._launchTimer = 0;
+        });
     }
 
     setItem(item) {
@@ -52,6 +62,29 @@ class HarborAppButton extends St.Button {
         if (this.kind === 'app')
             this.app = item.app;
         this.accessible_name = this._name();
+        if (this._launchTimer && item.windows.length > this._launchWindows)
+            this._endLaunch();
+    }
+
+    // The app was asked for a window: its slot shows the start.
+    markLaunching() {
+        if (this.kind !== 'app')
+            return;
+        this._launchWindows = this.item.windows.length;
+        if (this._launchTimer)
+            GLib.source_remove(this._launchTimer);
+        this._launchTimer = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, LAUNCH_SECONDS, () => {
+            this._launchTimer = 0;
+            this.slot?.setLaunching(false);
+            return GLib.SOURCE_REMOVE;
+        });
+        this.slot?.setLaunching(true);
+    }
+
+    _endLaunch() {
+        GLib.source_remove(this._launchTimer);
+        this._launchTimer = 0;
+        this.slot?.setLaunching(false);
     }
 
     // The drag shows the app's icon, at the size the dock shows it.
@@ -82,12 +115,16 @@ class HarborAppButton extends St.Button {
                 this._host.openPlace(this.item);
             return;
         }
-        if (mouse === Clutter.BUTTON_SECONDARY)
+        if (mouse === Clutter.BUTTON_SECONDARY) {
             this._host.openAppMenu(this);
-        else if (mouse === Clutter.BUTTON_MIDDLE)
+        } else if (mouse === Clutter.BUTTON_MIDDLE) {
+            this.markLaunching();
             Actions.newWindow(this.item);
-        else
+        } else {
+            if (this.item.windows.length === 0)
+                this.markLaunching();
             Actions.primary(this.item, {onList: () => this._host.showWindowList(this)});
+        }
     }
 
     _scrolled(event) {

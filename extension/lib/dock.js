@@ -2,31 +2,55 @@
 // edge, keeps it out of the way of windows the way the settings ask, makes
 // room for drops, and opens the menus of its items.
 
-import Clutter from 'gi://Clutter';
 import GLib from 'gi://GLib';
 import Meta from 'gi://Meta';
+import Mtk from 'gi://Mtk';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 
 import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
-import * as Layout from 'resource:///org/gnome/shell/ui/layout.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {appMenu, move, pin, placeMenu, unpin} from './appmenu.js';
-import {anyOverlaps, barOpacity} from './layout.js';
-import {STATE_MS, ease} from './motion.js';
+import {SPRINGS, expressive, normal, run, spring, springShare, stretch} from './choreo.js';
+import {debug} from './debug.js';
+import {anyOverlaps, fromCenter} from './layout.js';
+import {STATE_MS, animationsOn, ease} from './motion.js';
 import * as Places from './places.js';
 import {ICON_PX} from './settings.js';
+import {settleMs} from './spring.js';
 import {Tooltip} from './tooltip.js';
 import {windowList} from './windowlist.js';
 import {makeStyle} from './styles/index.js';
+import {rectIn} from './styles/base.js';
 
-// GNOME's own numbers for the hot corner: a firm push, not a brush.
-const PRESSURE_THRESHOLD = 100;
-const PRESSURE_TIMEOUT = 1000;
+// How long the pointer rests at the edge, or on the handle, before the
+// dock comes: long enough that passing by does nothing.
+const EDGE_MS = 200;
+const HANDLE_MS = 150;
 // How long the dock stays after the pointer has left it.
 const LEAVE_MS = 500;
+// Sizes and paddings are drawn for this icon size and scaled from it.
 const BASE_ICON = 48;
+// "See-through", as in Ledge.
+const SEE_THROUGH = 0.78;
+
+// Appearing, at normal speed: the dock rises, its bars spread, then the
+// items pop up from the middle outwards; groups follow one another.
+const SPREAD_AT = 90;
+const ITEMS_AT = 150;
+const GROUP_STEP = 90;
+const OVERLAY_AT = 260;
+// Going: the reverse, without swinging, in about two thirds of the time.
+const GO_ITEM_MS = 120;
+const GO_ITEM_STEP = 14;
+const GO_BARS_AT = 90;
+const GO_BARS_MS = 170;
+const GO_SINK_AT = 190;
+const GO_SINK_MS = 150;
+
+const easeIn = t => t * t * t;
+const clamp = t => Math.max(0, Math.min(1, t));
 
 export class Dock {
     // shared: {theme, model, places, status, settings: () => current, onState}
@@ -35,17 +59,20 @@ export class Dock {
         this._shared = shared;
         this.theme = shared.theme;
         this.tooltip = new Tooltip(this.theme);
-        this.barAlpha = 0.85;
+        this.barAlpha = 1;
         this.shown = true;
         this._revealed = false;
         this._hovering = false;
         this._dragging = false;
         this._menu = null;
         this._leave = 0;
-        this._barrier = null;
-        this._pressure = null;
+        this._edgeWait = 0;
+        this._handleWait = 0;
+        this._choreo = null;
+        this._ambient = false;
         this._struts = null;
         this._snapshot = null;
+        this._geometryQueued = false;
 
         this._container = new St.Bin({
             style_class: 'harbor-dock',
@@ -55,18 +82,27 @@ export class Dock {
         this._container._delegate = this;
         // At shell exit the actors go before Harbor is disabled.
         this._container.connect('destroy', () => {
-            if (this._leave)
-                GLib.source_remove(this._leave);
-            this._leave = 0;
+            this._clearTimers();
+            this._choreo?.stop();
+            this._choreo = null;
             this._style = null;
         });
         this._container.connect('notify::hover', () => this._hoverChanged());
         this._container.connect('notify::allocation', () => this._queueReposition());
-        // The quiet handle's grip: the only thing left of a hidden dock.
-        this._handle = new St.Button({style_class: 'harbor-handle', reactive: true, visible: false, accessible_name: 'Show the dock'});
+        // The handle: a thin grip, the only thing left of a dock that is away.
+        this._handle = new St.Button({style_class: 'harbor-handle', reactive: true, track_hover: true, visible: false, accessible_name: 'Show the dock'});
+        this._handle.set_pivot_point(0.5, 0.5);
         this._handle.connect('clicked', () => this.reveal());
+        this._handle.connect('notify::hover', () => this._handleHovered());
         Main.layoutManager.addChrome(this._handle);
+        // A strip one pixel deep along the edge under the dock: resting on
+        // it brings the dock back, no push needed.
+        this._edge = new St.Widget({reactive: true, visible: false});
+        this._edge.connect('enter-event', () => this._edgeEntered());
+        this._edge.connect('leave-event', () => this._edgeLeft());
+        Main.layoutManager.addChrome(this._edge);
 
+        this._shared.power?.connectObject('changed', () => this._syncAmbient(), this);
         this._applySettings(shared.settings());
 
         Main.overview.connectObject(
@@ -91,13 +127,28 @@ export class Dock {
     // Hands the dock new settings; a change of style, edge or size builds
     // the style anew, the rest is applied in place.
     setSettings(settings) {
+        const before = this._settings;
         const rebuild = ['style', 'position', 'iconSize', 'trashAndDrives', 'whenWindowClose']
-            .some(key => settings[key] !== this._settings[key]);
+            .some(key => settings[key] !== before[key]);
         this._settings = settings;
-        if (rebuild)
+        if (rebuild) {
             this._applySettings(settings, {fade: true});
-        else
-            this.update(this._snapshot);
+            // A new look shows itself, even on a dock that is away.
+            if (settings.style !== before.style || settings.position !== before.position || settings.iconSize !== before.iconSize)
+                this.reveal();
+            return;
+        }
+        this._setBarAlpha(settings.seeThrough ? SEE_THROUGH : 1);
+        this.update(this._snapshot);
+        this._syncHandle();
+        this._syncAmbient();
+    }
+
+    _setBarAlpha(alpha) {
+        if (alpha === this.barAlpha)
+            return;
+        this.barAlpha = alpha;
+        this._style?.paintRoot();
     }
 
     _applySettings(settings, {fade = false} = {}) {
@@ -105,26 +156,39 @@ export class Dock {
         this.side = settings.position;
         this._shrink = 0;
         this.iconPx = ICON_PX[settings.iconSize];
+        this.barAlpha = settings.seeThrough ? SEE_THROUGH : 1;
         const old = this._style;
         // The new style is made at the swap, so it never paints off stage.
         const swap = () => {
+            if (this._style !== old)
+                return;
             old?.destroy();
             this._style = makeStyle(this._settings.style, this);
             this._container.set_child(this._style.actor);
+            debug(this, 'style', {style: this._settings.style, side: this.side, icon: this.iconPx});
             this._track();
             if (this._snapshot)
                 this.update(this._snapshot);
             this._reposition();
-            this._setupBarrier();
             this._evaluate({animated: false});
+            this._syncAmbient();
         };
-        if (old && fade && this._container.visible) {
-            ease(this._container, {opacity: 0}, {duration: STATE_MS / 2, onComplete: () => {
-                swap();
-                ease(this._container, {opacity: 255}, {duration: STATE_MS / 2});
-            }});
-        } else {
+        if (!old || !fade || !this._container.visible) {
             swap();
+        } else if (expressive()) {
+            // The old look goes at once; the new one pops up (reveal).
+            this._stopChoreo();
+            this.shown = false;
+            this._container.visible = false;
+            swap();
+        } else {
+            ease(old.actor, {opacity: 0}, {duration: STATE_MS / 2, onComplete: () => {
+                swap();
+                if (!this._style)
+                    return;
+                this._style.actor.opacity = 0;
+                ease(this._style.actor, {opacity: 255}, {duration: STATE_MS / 2});
+            }});
         }
     }
 
@@ -150,7 +214,44 @@ export class Dock {
             return;
         this._snapshot = snapshot;
         this._style.update(snapshot);
+        this._style.setAmbient(this._ambient);
         this._evaluate();
+        this._queueIconGeometry();
+    }
+
+    // Where a window minimises to: its app's icon here. GNOME's own
+    // minimise animation then flies the window into it.
+    _queueIconGeometry() {
+        if (this._geometryQueued)
+            return;
+        this._geometryQueued = true;
+        global.compositor.get_laters().add(Meta.LaterType.BEFORE_REDRAW, () => {
+            this._geometryQueued = false;
+            this._setIconGeometry();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _setIconGeometry() {
+        if (!this._style || !this._container.get_stage())
+            return;
+        const [cx, cy] = this._container.get_position();
+        for (const button of this._style.appButtons()) {
+            const r = rectIn(button, this._container);
+            if (!r || r.width <= 0)
+                continue;
+            const rect = new Mtk.Rectangle({x: Math.round(cx + r.x), y: Math.round(cy + r.y), width: Math.round(r.width), height: Math.round(r.height)});
+            for (const window of button.item.windows) {
+                try {
+                    window.set_icon_geometry(rect);
+                } catch {}
+            }
+        }
+    }
+
+    // A new bar starts at the share the dock is shown with.
+    get revealShare() {
+        return this.shown && !this._choreo ? 1 : 0;
     }
 
     // Apps as this dock shows them: with "Every monitor", running means
@@ -260,6 +361,7 @@ export class Dock {
 
     // Keeps the dock up while a menu of it is open.
     _openMenu(menu) {
+        debug(this, 'menu open');
         this._dropMenu();
         this._menu = menu;
         this.tooltip.hide();
@@ -455,9 +557,15 @@ export class Dock {
         if (!this._style)
             return;
         const mode = this._mode();
-        const windows = this._windowsHere();
-        const overlap = anyOverlaps(this._shownRect(), windows);
-        const needed = Main.overview.visible || this._hovering || this._revealed || this._dragging || this._menu !== null;
+        const overlap = mode === 'make-room' && anyOverlaps(this._shownRect(), this._focusedWindowsHere());
+        const reasons = {
+            overview: Main.overview.visible,
+            hover: this._hovering,
+            revealed: this._revealed,
+            drag: this._dragging,
+            menu: this._menu !== null,
+        };
+        const needed = Object.values(reasons).some(Boolean);
         let show;
         if (mode === 'stay')
             show = true;
@@ -465,39 +573,56 @@ export class Dock {
             show = needed || !overlap;
         else
             show = needed;
-        // Over a window the bar is fully opaque; over the desktop it lets a
-        // little through.
-        const touched = windows.some(w => !w.minimized && w.maximized);
-        const alpha = Main.overview.visible ? 1 : barOpacity(touched || (show && overlap));
-        if (alpha !== this.barAlpha) {
-            this.barAlpha = alpha;
-            this._style.paintRoot();
-        }
         // Away because a window came close reads differently from away
         // because it was asked to hide.
-        this.state = show ? 'showing' : mode === 'make-room' ? 'making-room' : 'hidden';
+        const state = show ? 'showing' : mode === 'make-room' ? 'making-room' : 'hidden';
+        if (state !== this.state) {
+            const why = Object.entries(reasons).filter(([, on]) => on).map(([name]) => name).join(',');
+            debug(this, state, {mode, overlap, why: why || null});
+        }
+        this.state = state;
         this._setShown(show, animated);
         this._shared.onState?.();
     }
 
-    _windowsHere() {
+    // Make room gives way to the focused app only, as Intellihide does:
+    // the windows of the app in front, on this monitor and workspace.
+    _focusedWindowsHere() {
+        const focus = global.display.focus_window;
+        if (!focus)
+            return [];
+        const app = Shell.WindowTracker.get_default().get_window_app(focus);
+        const windows = app?.get_windows() ?? [focus];
         const workspace = global.workspace_manager.get_active_workspace();
-        return workspace.list_windows().filter(window => window.get_monitor() === this.monitorIndex).map(window => {
-            const rect = window.get_frame_rect();
-            return {
-                rect: {x: rect.x, y: rect.y, width: rect.width, height: rect.height},
-                minimized: window.minimized,
-                skipTaskbar: window.skip_taskbar || window.get_window_type() !== Meta.WindowType.NORMAL,
-                onMonitor: true,
-                maximized: window.maximized_vertically && window.maximized_horizontally,
-            };
-        });
+        return windows
+            .filter(window => window.get_monitor() === this.monitorIndex)
+            .filter(window => window.get_workspace() === workspace || window.is_on_all_workspaces())
+            .map(window => {
+                const rect = window.get_frame_rect();
+                return {
+                    rect: {x: rect.x, y: rect.y, width: rect.width, height: rect.height},
+                    minimized: window.minimized,
+                    skipTaskbar: window.skip_taskbar || window.get_window_type() !== Meta.WindowType.NORMAL,
+                    onMonitor: true,
+                };
+            });
+    }
+
+    // Handle and edge
+
+    _handleWanted() {
+        return Boolean(this._settings.handles?.[this._settings.style]) && this._awayAndAllowed();
+    }
+
+    // Away from a visible desktop: not in the overview, not under fullscreen.
+    _awayAndAllowed() {
+        return Boolean(this._style) && !this.shown && !Main.overview.visible && this._allowedVisible();
     }
 
     _syncHandle() {
-        const wanted = Boolean(this._style?.handle) && !this.shown && !Main.overview.visible && this._allowedVisible();
-        if (!wanted) {
+        if (!this._handleWanted()) {
             this._handle.visible = false;
+            this._handle.set_scale(1, 1);
             return;
         }
         const monitor = this.monitor;
@@ -517,6 +642,79 @@ export class Dock {
         this._handle.visible = true;
     }
 
+    // Under the pointer the handle grows, and with "Show on hover" it
+    // brings the dock after a moment.
+    _handleHovered() {
+        if (this._handleWait)
+            GLib.source_remove(this._handleWait);
+        this._handleWait = 0;
+        const hover = this._handle.hover && this._handle.visible;
+        const grow = hover ? 1.7 : 1;
+        spring(this._handle, this.vertical ? {scale_x: grow} : {scale_y: grow}, {spring: SPRINGS.hover});
+        if (!hover || !this._settings.handleHover)
+            return;
+        this._handleWait = GLib.timeout_add(GLib.PRIORITY_DEFAULT, HANDLE_MS, () => {
+            this._handleWait = 0;
+            if (this._handle.hover) {
+                debug(this, 'handle hover');
+                this.reveal();
+            }
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _syncEdge() {
+        const wanted = this._awayAndAllowed() && this._mode() !== 'stay';
+        if (!wanted) {
+            this._edge.visible = false;
+            this._edgeLeft();
+            return;
+        }
+        const monitor = this.monitor;
+        const shown = this._shownRect();
+        const left = Math.max(monitor.x, shown.x);
+        const top = Math.max(monitor.y, shown.y);
+        const right = Math.min(monitor.x + monitor.width, shown.x + shown.width);
+        const bottom = Math.min(monitor.y + monitor.height, shown.y + shown.height);
+        if (right <= left || bottom <= top) {
+            this._edge.visible = false;
+            return;
+        }
+        if (this.side === 'bottom') {
+            this._edge.set_position(left, monitor.y + monitor.height - 1);
+            this._edge.set_size(right - left, 1);
+        } else {
+            this._edge.set_position(this.side === 'left' ? monitor.x : monitor.x + monitor.width - 1, top);
+            this._edge.set_size(1, bottom - top);
+        }
+        this._edge.visible = true;
+    }
+
+    _edgeEntered() {
+        if (this._edgeWait)
+            return;
+        this._edgeWait = GLib.timeout_add(GLib.PRIORITY_DEFAULT, EDGE_MS, () => {
+            this._edgeWait = 0;
+            debug(this, 'edge rest');
+            this.reveal();
+            return GLib.SOURCE_REMOVE;
+        });
+    }
+
+    _edgeLeft() {
+        if (this._edgeWait)
+            GLib.source_remove(this._edgeWait);
+        this._edgeWait = 0;
+    }
+
+    _clearTimers() {
+        for (const name of ['_leave', '_edgeWait', '_handleWait']) {
+            if (this[name])
+                GLib.source_remove(this[name]);
+            this[name] = 0;
+        }
+    }
+
     // GNOME hides the dock under a fullscreen window (trackFullscreen); the
     // dock never shows itself against that.
     _allowedVisible() {
@@ -524,21 +722,36 @@ export class Dock {
         return !(global.window_group.visible && monitor?.inFullscreen);
     }
 
+    // Appearing and going
+
     _setShown(show, animated) {
+        const container = this._container;
         if (show === this.shown) {
             // A shown dock sits at its place, whatever an earlier slide left.
-            const container = this._container;
-            if (show && !container.get_transition('translation-x') && !container.get_transition('translation-y')) {
+            if (show && !this._choreo && !container.get_transition('translation-x') && !container.get_transition('translation-y')) {
                 container.translation_x = 0;
                 container.translation_y = 0;
+                container.opacity = 255;
                 container.visible = this._allowedVisible();
             }
             this._syncHandle();
+            this._syncEdge();
             return;
         }
         this.shown = show;
         this._syncHandle();
-        const container = this._container;
+        this._syncEdge();
+        this._syncAmbient();
+        if (!show)
+            this.tooltip.hide();
+        if (animated && expressive()) {
+            if (show)
+                this._appear();
+            else
+                this._go();
+            return;
+        }
+        this._stopChoreo();
         const offset = this._edgeThickness();
         const hidden = {
             bottom: {translation_x: 0, translation_y: offset},
@@ -546,10 +759,10 @@ export class Dock {
             right: {translation_x: offset, translation_y: 0},
         }[this.side];
         if (show) {
+            this._settle(1);
             container.visible = this._allowedVisible();
             ease(container, {translation_x: 0, translation_y: 0, opacity: 255}, {duration: animated ? STATE_MS : 0});
         } else {
-            this.tooltip.hide();
             ease(container, {...hidden, opacity: 0}, {
                 duration: animated ? STATE_MS : 0,
                 onComplete: () => {
@@ -558,6 +771,135 @@ export class Dock {
                 },
             });
         }
+    }
+
+    _stopChoreo() {
+        this._choreo?.stop();
+        this._choreo = null;
+    }
+
+    // Every bar and item at one share: 1 is shown, 0 gone.
+    _settle(share) {
+        const style = this._style;
+        if (!style)
+            return;
+        for (const group of style.revealGroups()) {
+            for (const ghost of group.bars)
+                style.setSpread(ghost, share);
+            for (const item of group.items)
+                item.set_scale(share, share);
+        }
+        style.overlay.opacity = Math.round(255 * share);
+        style.revealFrame();
+    }
+
+    // How far the dock has risen from its edge: 0 down, 1 up.
+    _rise() {
+        const offset = this._edgeThickness();
+        if (!offset)
+            return 1;
+        const along = this.vertical ? this._container.translation_x : this._container.translation_y;
+        return clamp(1 - Math.abs(along) / offset);
+    }
+
+    _setRise(share) {
+        const offset = this._edgeThickness() * (1 - share);
+        const container = this._container;
+        if (this.side === 'bottom')
+            container.translation_y = offset;
+        else
+            container.translation_x = this.side === 'left' ? -offset : offset;
+    }
+
+    // Rises as a pill in the middle of the edge, spreads to both sides with
+    // a swing, and lets the items pop up from the middle outwards. Taken up
+    // from wherever an earlier move left things.
+    _appear() {
+        const container = this._container;
+        const style = this._style;
+        this._stopChoreo();
+        container.remove_all_transitions();
+        if (!container.visible) {
+            this._settle(0);
+            this._setRise(0);
+        }
+        container.opacity = 255;
+        container.visible = this._allowedVisible();
+        const tracks = [];
+        const add = (from, at, curve, set) => tracks.push({from, at, curve, set});
+        add(this._rise(), 0, SPRINGS.rise, v => this._setRise(v));
+        const groups = style.revealGroups();
+        const groupRanks = fromCenter(groups.length);
+        groups.forEach((group, g) => {
+            const after = (group.rank ?? groupRanks[g]) * GROUP_STEP;
+            for (const ghost of group.bars)
+                add(ghost.spread, SPREAD_AT + after, SPRINGS.spread, v => style.setSpread(ghost, Math.max(0, v)));
+            const ranks = fromCenter(group.items.length);
+            group.items.forEach((item, i) => {
+                add(item.scale_x, ITEMS_AT + after + ranks[i] * style.itemStep, SPRINGS.pop, v => {
+                    const scale = Math.max(0, v);
+                    item.set_scale(scale, scale);
+                });
+            });
+        });
+        add(style.overlay.opacity / 255, OVERLAY_AT, SPRINGS.press, v => (style.overlay.opacity = Math.round(255 * clamp(v))));
+        const length = Math.max(...tracks.map(track => track.at + settleMs(track.curve)));
+        debug(this, 'appear', {ms: stretch(length)});
+        this._choreo = run(container, length, ms => {
+            const done = ms >= stretch(length);
+            for (const track of tracks) {
+                const share = done ? 1 : springShare(ms, track.at, track.curve);
+                track.set(track.from + (1 - track.from) * share);
+            }
+            style.revealFrame();
+        }, () => {
+            this._choreo = null;
+            this._syncAmbient();
+            this._queueIconGeometry();
+        });
+    }
+
+    // The reverse: the items gather in the middle, the bar draws together
+    // into a pill, and the pill sinks into the edge.
+    _go() {
+        const container = this._container;
+        const style = this._style;
+        this._stopChoreo();
+        container.remove_all_transitions();
+        const tracks = [];
+        const add = (from, at, length, set) => tracks.push({from, at, length, set});
+        const groups = style.revealGroups();
+        for (const group of groups) {
+            const ranks = fromCenter(group.items.length);
+            const outer = Math.max(0, ...ranks);
+            group.items.forEach((item, i) => add(item.scale_x, (outer - ranks[i]) * GO_ITEM_STEP, GO_ITEM_MS, v => item.set_scale(v, v)));
+            for (const ghost of group.bars)
+                add(ghost.spread, GO_BARS_AT, GO_BARS_MS, v => style.setSpread(ghost, v));
+        }
+        add(style.overlay.opacity / 255, 0, GO_ITEM_MS, v => (style.overlay.opacity = Math.round(255 * v)));
+        add(this._rise(), GO_SINK_AT, GO_SINK_MS, v => this._setRise(v));
+        const length = Math.max(...tracks.map(track => track.at + track.length));
+        debug(this, 'go', {ms: stretch(length)});
+        this._choreo = run(container, length, ms => {
+            const now = normal(ms);
+            for (const track of tracks)
+                track.set(track.from * (1 - easeIn(clamp((now - track.at) / track.length))));
+            style.revealFrame();
+        }, () => {
+            this._choreo = null;
+            if (!this.shown)
+                container.visible = false;
+        });
+    }
+
+    // "Always moving": shapes turn slowly while the dock shows, with
+    // animations on and not on battery.
+    _syncAmbient() {
+        const settings = this._settings;
+        const on = Boolean(settings.alwaysMoving && settings.expressiveMotion && animationsOn() &&
+            this.shown && !this._shared.power?.onBattery);
+        this._ambient = on;
+        this._style?.setAmbient(on);
     }
 
     // The dock's depth from the screen edge, gap included.
@@ -624,7 +966,9 @@ export class Dock {
         this._container.set_position(x, y);
         if (this._fit(full ? 0 : this.vertical ? h : w, this.vertical ? monitor.height - top : monitor.width))
             return;
-        this._setupBarrier();
+        debug(this, 'place', {rect: {x, y, width: w, height: h}});
+        this._syncEdge();
+        this._queueIconGeometry();
     }
 
     // A dock longer than its edge takes smaller icons, step by step, and
@@ -641,6 +985,7 @@ export class Dock {
         }
         const keep = this._shrink;
         this.iconPx = full - 8 * keep;
+        debug(this, 'fit', {length, room, icon: this.iconPx});
         this._rebuildStyle();
         return true;
     }
@@ -651,68 +996,8 @@ export class Dock {
         this._container.set_child(this._style.actor);
         if (this._snapshot)
             this._style.update(this._snapshot);
+        this._style.setAmbient(this._ambient);
         this._queueReposition();
-    }
-
-    // A push against the edge brings a hidden dock back.
-    _setupBarrier() {
-        if (!this._style || this._mode() === 'stay') {
-            this._removeBarrier();
-            this._barrierKey = null;
-            return;
-        }
-        const monitor = this.monitor;
-        const shown = this._shownRect();
-        // The barrier stays on the monitor even if the dock is longer.
-        const top = Math.max(monitor.y, shown.y);
-        const left = Math.max(monitor.x, shown.x);
-        const r = {
-            x: left,
-            y: top,
-            width: Math.min(shown.x + shown.width, monitor.x + monitor.width) - left,
-            height: Math.min(shown.y + shown.height, monitor.y + monitor.height) - top,
-        };
-        if (r.width <= 0 || r.height <= 0) {
-            this._removeBarrier();
-            this._barrierKey = null;
-            return;
-        }
-        let params;
-        if (this.side === 'bottom') {
-            const edge = monitor.y + monitor.height;
-            params = {x1: r.x, x2: r.x + r.width, y1: edge, y2: edge, directions: Meta.BarrierDirection.NEGATIVE_Y};
-        } else if (this.side === 'left') {
-            params = {x1: monitor.x, x2: monitor.x, y1: r.y, y2: r.y + r.height, directions: Meta.BarrierDirection.POSITIVE_X};
-        } else {
-            const edge = monitor.x + monitor.width;
-            params = {x1: edge, x2: edge, y1: r.y, y2: r.y + r.height, directions: Meta.BarrierDirection.NEGATIVE_X};
-        }
-        const key = JSON.stringify(params);
-        if (key === this._barrierKey && this._barrier)
-            return;
-        this._removeBarrier();
-        this._barrierKey = key;
-        try {
-            this._barrier = new Meta.Barrier({backend: global.backend, ...params});
-            this._pressure = new Layout.PressureBarrier(PRESSURE_THRESHOLD, PRESSURE_TIMEOUT,
-                Shell.ActionMode.NORMAL | Shell.ActionMode.OVERVIEW);
-            this._pressure.addBarrier(this._barrier);
-            this._pressure.connect('trigger', () => this.reveal());
-        } catch (e) {
-            logError(e, 'Harbor: no pressure barrier');
-            this._removeBarrier();
-        }
-    }
-
-    _removeBarrier() {
-        if (this._pressure) {
-            this._pressure.destroy();
-            this._pressure = null;
-        }
-        if (this._barrier) {
-            this._barrier.destroy();
-            this._barrier = null;
-        }
     }
 
     // Brings the dock back until the pointer has been away from it a moment.
@@ -732,10 +1017,9 @@ export class Dock {
     }
 
     destroy() {
-        if (this._leave)
-            GLib.source_remove(this._leave);
-        this._leave = 0;
-        this._removeBarrier();
+        this._clearTimers();
+        this._stopChoreo();
+        this._shared.power?.disconnectObject(this);
         this._dropMenu();
         this._clearDragWatch();
         Main.overview.disconnectObject(this);
@@ -749,5 +1033,7 @@ export class Dock {
         this._container.destroy();
         Main.layoutManager.removeChrome(this._handle);
         this._handle.destroy();
+        Main.layoutManager.removeChrome(this._edge);
+        this._edge.destroy();
     }
 }

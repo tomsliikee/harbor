@@ -1,39 +1,42 @@
-// Floating bar: one rounded bar that floats above the edge. Apps rest on
-// tiles in their own tone; a line under each says what runs.
+// Floating bar: one rounded bar that floats above the edge. The apps' own
+// icons stand free on it; a shape in the focused app's tone glides behind
+// whichever app has the focus, and a line under each says what runs.
 
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
+import {SPRINGS, expressive, run, spring, springShare, stretch} from '../choreo.js';
 import {HarborRunLine} from '../runline.js';
-import {Style, box} from './base.js';
-
-// The share of a tile the app's own icon fills.
-export const ICON_SHARE = 0.72;
+import {HarborShape} from '../shape.js';
+import {COOKIE, SUNNY} from '../shapes.js';
+import {settleMs} from '../spring.js';
+import {Style, box, rectIn} from './base.js';
 
 export class FloatingBarStyle extends Style {
+    constructor(host) {
+        super(host);
+        this._focus = null;
+        this._glide = null;
+        this.glider = new HarborShape({size: this.slotSize});
+        this.glider.set_pivot_point(0.5, 0.5);
+        this.glider.set_scale(0, 0);
+        this.glider.setShape(SUNNY, {animated: false});
+        this.backdrop.add_child(this.glider);
+    }
+
     buildRoot() {
         const vertical = this.host.vertical;
         const root = box(vertical, 'harbor-bar harbor-floating');
         this.apps = box(vertical, 'harbor-bar-apps');
         this.separator = new St.Widget({style_class: 'harbor-separator'});
         this.ends = box(vertical, 'harbor-bar-apps');
+        // The separator pops up with the items around it.
+        this.separator._harborItem = true;
+        this.separator.set_pivot_point(0.5, 0.5);
         root.add_child(this.apps);
         root.add_child(this.separator);
         root.add_child(this.ends);
         return root;
-    }
-
-    // The tile size for the icon size in the settings.
-    get tile() {
-        return this.host.iconPx;
-    }
-
-    get showAppsSize() {
-        return this.tile + this.px(8);
-    }
-
-    get showAppsRadius() {
-        return this.px(20);
     }
 
     get barRadius() {
@@ -44,25 +47,23 @@ export class FloatingBarStyle extends Style {
         return this.px(8);
     }
 
+    // The colour of the focus shape behind an app.
+    focusColor(button) {
+        return this.toneColor(button.item.tone, 0.32);
+    }
+
     fill(button) {
         const side = this.host.side;
         const vertical = this.host.vertical;
         // The run line sits between the icon and the screen edge.
         const content = box(!vertical, 'harbor-item-box');
-        const size = button.kind === 'show-apps' ? this.showAppsSize : this.tile;
-        const tile = new St.Bin({
-            style_class: 'harbor-tile-bin',
-            width: size,
-            height: size,
-            child: this.icon(button, size),
-        });
+        const slot = this.makeSlot(button);
         const run = new HarborRunLine({theme: this.host.theme, vertical, scale: this.s});
-        run.visible = button.kind === 'app';
         if (side === 'left') {
             content.add_child(run);
-            content.add_child(tile);
+            content.add_child(slot);
         } else {
-            content.add_child(tile);
+            content.add_child(slot);
             content.add_child(run);
         }
         // Show apps and places carry no run line, but keep the same rhythm.
@@ -72,36 +73,30 @@ export class FloatingBarStyle extends Style {
         content.x_align = Clutter.ActorAlign.CENTER;
         content.y_align = Clutter.ActorAlign.CENTER;
         button.set_child(content);
-        button.tileBin = tile;
+        button.tileBin = slot;
         button.run = run;
+        button.connect('notify::allocation', () => {
+            if (button === this._focus)
+                this._placeGlider();
+        });
         this.host.decorate(button);
-    }
-
-    icon(button, size) {
-        const iconSize = Math.round(size * ICON_SHARE);
-        if (button.kind === 'app')
-            return button.item.app.create_icon_texture(iconSize);
-        if (button.kind === 'show-apps')
-            return new St.Icon({icon_name: 'view-app-grid-symbolic', icon_size: Math.round(size * 0.42)});
-        const icon = new St.Icon({icon_size: Math.round(size * 0.42)});
-        button.placeIcon = icon;
-        return icon;
     }
 
     arrange({pinned, running, places, showApps}) {
         this.place(this.apps, [...pinned, ...running]);
         this.place(this.ends, [...places, showApps]);
+        this.separator.visible = true;
+        this.setFocus([...pinned, ...running].find(button => button.item.focused) ?? null);
     }
 
     paintRoot() {
         const roles = this.host.theme.roles;
         const vertical = this.host.vertical;
         const pad = this.barPadding;
-        this.body.set_style(
-            `${this.tileStyle(roles.highest, this.barRadius, this.host.barAlpha)}` +
-            `padding: ${pad}px; spacing: ${this.px(6)}px;`);
-        this.apps.set_style(`spacing: ${this.px(6)}px;`);
-        this.ends.set_style(`spacing: ${this.px(6)}px;`);
+        this.body.set_style(`padding: ${pad}px; spacing: ${this.px(4)}px;`);
+        this.bar(this.body, this.tileStyle(roles.highest, this.barRadius, this.host.barAlpha));
+        this.apps.set_style(`spacing: ${this.px(2)}px;`);
+        this.ends.set_style(`spacing: ${this.px(2)}px;`);
         if (vertical)
             this.separator.set_size(this.px(36), 1);
         else
@@ -112,21 +107,111 @@ export class FloatingBarStyle extends Style {
     }
 
     paint(button) {
-        const roles = this.host.theme.roles;
-        const item = button.item;
+        this.paintSlot(button);
         if (button.kind === 'app') {
-            const attention = this.host.attentionFor(button);
-            const background = attention ? this.host.theme.warn : roles[item.tone];
-            button.tileBin.set_style(this.tileStyle(background, this.px(item.focused ? 24 : 16)));
+            const item = button.item;
             button.run.set({windows: item.windows.length, focused: item.focused, playing: this.host.playing(item)});
-        } else if (button.kind === 'place') {
-            button.placeIcon.icon_name = item.iconName ?? null;
-            if (item.gicon)
-                button.placeIcon.gicon = item.gicon;
-            button.tileBin.set_style(`${this.tileStyle(roles.high, this.px(16))} color: ${roles.onVar};`);
-        } else {
-            button.tileBin.set_style(`${this.tileStyle(roles.tc, this.showAppsRadius)} color: ${roles.onTc};`);
+            if (button === this._focus)
+                this._paintGlider();
         }
         this.host.paintStatus(button);
+    }
+
+    // The focus shape
+
+    setFocus(button) {
+        if (button === this._focus)
+            return;
+        const before = this._focus;
+        this._focus = button;
+        before?.slot?.setBacked(false);
+        if (!button) {
+            this._glide?.stop();
+            this._glide = null;
+            spring(this.glider, {scale_x: 0, scale_y: 0}, {spring: SPRINGS.leave});
+            return;
+        }
+        button.slot?.setBacked(true);
+        this._paintGlider();
+        // From nothing the shape grows in place; from another app it glides.
+        if (!before || this.glider.scale_x < 0.1 || !expressive()) {
+            this._glide?.stop();
+            this._glide = null;
+            this._placeGlider();
+            spring(this.glider, {scale_x: 1, scale_y: 1}, {spring: SPRINGS.pop});
+        } else {
+            this._startGlide();
+        }
+    }
+
+    _paintGlider() {
+        const button = this._focus;
+        if (!button)
+            return;
+        const attention = this.host.attentionFor(button);
+        this.glider.setColor(attention ? this.host.theme.warn : this.focusColor(button));
+    }
+
+    // Where the focus shape belongs: centred on the focused app's slot.
+    _gliderTarget() {
+        const slot = this._focus?.slot;
+        if (!slot)
+            return null;
+        const r = rectIn(slot, this.actor);
+        if (!r)
+            return null;
+        const size = this.glider.width;
+        return {x: Math.round(r.x + (r.width - size) / 2), y: Math.round(r.y + (r.height - size) / 2)};
+    }
+
+    _placeGlider() {
+        if (this._glide)
+            return;
+        const to = this._gliderTarget();
+        if (to)
+            this.glider.set_position(to.x, to.y);
+    }
+
+    // The shape springs over to the new app and follows it if it moves on
+    // the way (an app that just opened grows in at the same time).
+    _startGlide() {
+        this._glide?.stop();
+        const from = {x: this.glider.x, y: this.glider.y};
+        const length = settleMs(SPRINGS.glide);
+        this.glider.setShape(COOKIE);
+        this._glide = run(this.glider, length, ms => {
+            const to = this._gliderTarget();
+            if (!to)
+                return;
+            const share = ms >= stretch(length) ? 1 : springShare(ms, 0, SPRINGS.glide);
+            this.glider.set_position(Math.round(from.x + (to.x - from.x) * share), Math.round(from.y + (to.y - from.y) * share));
+        }, () => {
+            this._glide = null;
+            this.glider.setShape(SUNNY);
+            this._placeGlider();
+        });
+    }
+
+    layoutChanged() {
+        super.layoutChanged();
+        this._placeGlider();
+    }
+
+    // While the dock appears, the focus shape grows with its app.
+    revealFrame() {
+        const scale = this._focus?.scale_x ?? 0;
+        if (!this._glide)
+            this.glider.set_scale(scale, scale);
+    }
+
+    setAmbient(on) {
+        this.glider.setSpin(on);
+    }
+
+    destroy() {
+        this._glide?.stop();
+        this._glide = null;
+        this._focus = null;
+        super.destroy();
     }
 }

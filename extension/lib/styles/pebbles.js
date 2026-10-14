@@ -6,8 +6,6 @@ import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
 import {HarborRunLine} from '../runline.js';
-import {HarborShape} from '../shape.js';
-import {CIRCLE, COOKIE} from '../shapes.js';
 import {magnification} from '../layout.js';
 import {text} from '../text.js';
 import {Style, box} from './base.js';
@@ -22,10 +20,6 @@ export class PebblesStyle extends Style {
         this.overlay.add_child(this._name);
     }
 
-    get hasBar() {
-        return false;
-    }
-
     get ownNames() {
         return true;
     }
@@ -36,22 +30,25 @@ export class PebblesStyle extends Style {
     }
 
     get pebble() {
-        return this.host.iconPx + this.px(6);
+        return this.slotSize;
+    }
+
+    // Pebbles appear one by one.
+    get itemStep() {
+        return 45;
     }
 
     fill(button) {
         const vertical = this.host.vertical;
         const content = box(!vertical, 'harbor-item-box');
-        const holder = new St.Widget({layout_manager: new Clutter.BinLayout(), width: this.pebble, height: this.pebble});
-        const shape = new HarborShape({size: this.pebble, shadow: true});
-        const icon = button.kind === 'app'
-            ? button.item.app.create_icon_texture(Math.round(this.pebble * 0.58))
-            : new St.Icon({icon_name: button.kind === 'show-apps' ? 'view-app-grid-symbolic' : null, icon_size: Math.round(this.pebble * 0.38)});
-        if (button.kind === 'place')
-            button.placeIcon = icon;
-        const tile = new St.Bin({x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER, child: icon});
-        holder.add_child(shape);
-        holder.add_child(tile);
+        // The icon nearly fills its pebble; the pebble is its tone around it.
+        const holder = this.makeSlot(button, {
+            iconSize: Math.round(this.pebble * 0.8),
+            solid: {scale: 1, hoverScale: 1},
+            shadow: true,
+        });
+        const shape = holder.shape;
+        const tile = holder;
         const run = new HarborRunLine({theme: this.host.theme, vertical, scale: this.s});
         if (this.host.side === 'left') {
             content.add_child(run);
@@ -82,24 +79,21 @@ export class PebblesStyle extends Style {
     }
 
     paint(button) {
-        const roles = this.host.theme.roles;
+        this.paintSlot(button);
         if (button.kind === 'app') {
-            button.tileBin.set_style('');
             const item = button.item;
-            const attention = this.host.attentionFor(button);
-            button.shape.setColor(attention ? this.host.theme.warn : roles[item.tone]);
             button.run.set({windows: item.windows.length, focused: item.focused, playing: this.host.playing(item)});
-        } else if (button.kind === 'place') {
-            button.placeIcon.icon_name = button.item.iconName ?? null;
-            if (button.item.gicon)
-                button.placeIcon.gicon = button.item.gicon;
-            button.shape.setColor(roles.high);
-            button.tileBin.set_style(`color: ${roles.onVar};`);
-        } else {
-            button.shape.setColor(roles.tc);
-            button.tileBin.set_style(`color: ${roles.onTc};`);
         }
         this.host.paintStatus(button);
+    }
+
+    // The magnification shows what is under the pointer; the slot itself
+    // does not need to.
+    hovered() {}
+
+    setAmbient(on) {
+        for (const button of this.revealItems())
+            button.shape?.setSpin(on);
     }
 
     // The pointer's distance to each pebble, in pebbles, sets its size.
@@ -124,7 +118,7 @@ export class PebblesStyle extends Style {
             }
         }
         for (const button of buttons)
-            button.shape?.setShape(button === nearest && nearestDistance < 0.5 ? COOKIE : CIRCLE);
+            button.slot?.setHover(button === nearest && nearestDistance < 0.5);
         this._showName(nearestDistance < 0.5 ? nearest : null);
     }
 

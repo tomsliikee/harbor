@@ -5,7 +5,9 @@
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
+import {SPRINGS, expressive, run, springShare, stretch} from './choreo.js';
 import {roundedRect, setSource} from './paint.js';
+import {settleMs} from './spring.js';
 
 const LENGTH = 24;
 const THICK = 6;
@@ -22,15 +24,39 @@ class HarborRunLine extends St.DrawingArea {
         this._focusedLength = focusedLength;
         this._runningLength = runningLength;
         this._state = {windows: 0, focused: false, playing: false, onColor: null, focusColor: null};
+        // How far the line has drawn out from its middle, 0 to 1 (past 1
+        // while it swings).
+        this._grow = 1;
+        this._growing = null;
         this.connect('repaint', () => this._draw());
         this._theme.connectObject('changed', () => this.queue_repaint(), this);
-        this.connect('destroy', () => this._theme.disconnectObject(this));
+        this.connect('destroy', () => {
+            this._growing?.stop();
+            this._theme.disconnectObject(this);
+        });
     }
 
     // colors: optional role names for a style that draws on its own colour.
     set(state) {
+        const before = this._state;
         this._state = {...this._state, ...state};
+        const changed = ['windows', 'focused', 'playing'].some(key => key in state && state[key] !== before[key]);
+        if (changed && this.get_stage() && expressive())
+            this._drawOut(before.windows === 0 ? 0 : 0.4);
         this.queue_repaint();
+    }
+
+    // The new line draws out from the middle with a swing.
+    _drawOut(from) {
+        this._growing?.stop();
+        const length = settleMs(SPRINGS.pop);
+        this._growing = run(this, length, ms => {
+            const share = ms >= stretch(length) ? 1 : springShare(ms, 0, SPRINGS.pop);
+            this._grow = from + (1 - from) * share;
+            this.queue_repaint();
+        }, () => {
+            this._growing = null;
+        });
     }
 
     _draw() {
@@ -40,12 +66,18 @@ class HarborRunLine extends St.DrawingArea {
         const {windows, focused, playing} = this._state;
         const along = this._vertical ? height : width;
         const across = this._vertical ? width : height;
-        const rect = (start, length) => {
+        // Every piece is drawn from the middle at the share it has grown to.
+        const grow = Math.max(0, this._grow);
+        const rect = (start, size) => {
+            const middle = along / 2;
+            const length = size * grow;
+            start = middle + (start + size / 2 - middle) * grow - length / 2;
             const offset = (across - BAR) / 2;
+            const radius = Math.min(BAR, length) / 2;
             if (this._vertical)
-                roundedRect(cr, offset, start, BAR, length, BAR / 2);
+                roundedRect(cr, offset, start, BAR, length, radius);
             else
-                roundedRect(cr, start, offset, length, BAR, BAR / 2);
+                roundedRect(cr, start, offset, length, BAR, radius);
         };
         const focusColor = roles[this._state.focusColor ?? 'primary'];
         const runColor = roles[this._state.onColor ?? 'onVar'];

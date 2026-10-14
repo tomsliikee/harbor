@@ -5,6 +5,10 @@ export const POINTS = 240;
 
 export const CIRCLE = Object.freeze({n: 0, a: 0});
 export const COOKIE = Object.freeze({n: 6, a: 0.14});
+// Behind the focused app: a soft eight-scalloped sun.
+export const SUNNY = Object.freeze({n: 8, a: 0.1});
+// Show apps under the pointer.
+export const BLOOM = Object.freeze({n: 8, a: 0.22});
 
 // Open windows shape the stage: none is a circle, more get more points.
 const LADDER = [

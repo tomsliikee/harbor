@@ -15,6 +15,7 @@ export class LoudTileStyle extends FloatingBarStyle {
         const root = super.buildRoot();
         const vertical = this.host.vertical;
         this.loud = new St.Button({style_class: 'harbor-loud-tile', can_focus: true, reactive: true});
+        this.loud.set_pivot_point(0.5, 0.5);
         const inner = box(vertical, 'harbor-loud-inner');
         this.loudPlace = new St.Bin({style_class: 'harbor-loud-place'});
         const words = box(true, 'harbor-loud-words');
@@ -56,11 +57,12 @@ export class LoudTileStyle extends FloatingBarStyle {
         const app = focused?.item.app ?? null;
         if (app !== this._loudApp) {
             this._loudApp = app;
-            const size = this.px(48);
+            const size = Math.round(this.host.iconPx * 0.9);
             this.loudPlace.set_child(app
-                ? app.create_icon_texture(this.px(34))
-                : new St.Icon({icon_name: 'view-app-grid-symbolic', icon_size: this.px(22)}));
+                ? app.create_icon_texture(size)
+                : new St.Icon({icon_name: 'view-app-grid-symbolic', icon_size: Math.round(size * 0.45)}));
             this.loudPlace.set_size(size, size);
+            this._paintLoudPlace();
         }
         const snapshot = this.snapshot;
         if (focused) {
@@ -72,13 +74,25 @@ export class LoudTileStyle extends FloatingBarStyle {
         }
     }
 
+    // The app's own icon stands free; without an app, a glyph on primary.
+    _paintLoudPlace() {
+        const roles = this.host.theme.roles;
+        this.loudPlace.set_style(this._loudApp
+            ? 'background-color: transparent;'
+            : `background-color: ${roles.primary}; color: ${roles.onPrimary}; border-radius: ${this.px(16)}px;`);
+    }
+
+    revealItems() {
+        return [this.loud, ...super.revealItems()];
+    }
+
     paintRoot() {
         super.paintRoot();
         const roles = this.host.theme.roles;
         const vertical = this.host.vertical;
         this.loud.set_style(`background-color: ${roles.pc}; color: ${roles.onPc}; border-radius: ${this.px(24)}px;` +
             `padding: ${this.px(8)}px ${this.px(vertical ? 8 : 14)}px ${this.px(vertical ? 4 : 8)}px ${this.px(8)}px;`);
-        this.loudPlace.set_style(`background-color: ${roles.primary}; color: ${roles.onPrimary}; border-radius: ${this.px(14)}px;`);
+        this._paintLoudPlace();
         this.loud.get_child().set_style(`spacing: ${this.px(12)}px;`);
         if (vertical)
             this.loudSeparator.set_size(this.px(36), 1);

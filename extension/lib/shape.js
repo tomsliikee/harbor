@@ -1,12 +1,15 @@
 // HarborShape: an expressive shape filled with Cairo, since St cannot use a
 // path as a background. A change of shape morphs point by point.
 
+import Clutter from 'gi://Clutter';
 import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import {SPATIAL, STATE_MS, animate} from './motion.js';
 import {setSource, polygon} from './paint.js';
 import {CIRCLE, outline} from './shapes.js';
+
+const SPIN_MS = 20000;
 
 export const HarborShape = GObject.registerClass({GTypeName: 'HarborShape'},
 class HarborShape extends St.DrawingArea {
@@ -21,8 +24,31 @@ class HarborShape extends St.DrawingArea {
         this._alpha = 1;
         this._shadow = shadow;
         this._tween = null;
+        this._angle = 0;
+        this._spin = null;
         this.connect('repaint', () => this._draw());
-        this.connect('destroy', () => this._tween?.stop());
+        this.connect('destroy', () => {
+            this._tween?.stop();
+            this._spin?.stop();
+        });
+    }
+
+    // A slow turn while nothing happens, one round in SPIN_MS.
+    setSpin(on) {
+        if (Boolean(this._spin) === on)
+            return;
+        if (!on) {
+            this._spin.stop();
+            this._spin = null;
+            return;
+        }
+        this._spin = new Clutter.Timeline({actor: this, duration: SPIN_MS, repeat_count: -1});
+        const start = this._angle;
+        this._spin.connect('new-frame', () => {
+            this._angle = start + this._spin.get_progress() * 2 * Math.PI;
+            this.queue_repaint();
+        });
+        this._spin.start();
     }
 
     setShape(shape, {animated = true} = {}) {
@@ -65,7 +91,9 @@ class HarborShape extends St.DrawingArea {
         const r = Math.min(width, height) / 2 - inset;
         const cx = width / 2;
         const cy = height / 2 - (this._shadow ? 1 : 0);
-        const points = this._current().map(([x, y]) => [cx + x * r, cy + y * r]);
+        const cos = Math.cos(this._angle);
+        const sin = Math.sin(this._angle);
+        const points = this._current().map(([x, y]) => [cx + (x * cos - y * sin) * r, cy + (x * sin + y * cos) * r]);
         if (this._shadow) {
             cr.save();
             cr.translate(0, 2);

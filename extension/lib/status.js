@@ -11,9 +11,11 @@ import St from 'gi://St';
 
 import {EventEmitter} from 'resource:///org/gnome/shell/misc/signals.js';
 
+import {SPRINGS, expressive, normal, run, spring} from './choreo.js';
 import {appIdFromDesktopEntry, appIdFromUri} from './layout.js';
 import {rgba, warn} from './palettes.js';
 import {setSource} from './paint.js';
+import {countBetween} from './spring.js';
 import {text} from './text.js';
 import * as Words from './words.js';
 
@@ -54,6 +56,13 @@ class HarborRing extends St.DrawingArea {
         cr.$dispose();
     }
 });
+
+// The icon in an item's slot (or its tile).
+function iconOf(button) {
+    return button.tileBin?.icon ?? button.tileBin?.child ?? null;
+}
+
+const COUNT_MS = 400;
 
 export class Status extends EventEmitter {
     constructor(theme) {
@@ -221,6 +230,32 @@ export class Status extends EventEmitter {
         return false;
     }
 
+    // A new count pops the badge and counts up to itself.
+    _count(layer, text) {
+        if (layer.shown === text)
+            return;
+        const before = layer.shown;
+        layer.shown = text;
+        layer.counter?.stop();
+        layer.counter = null;
+        if (before === null || !expressive()) {
+            layer.count.text = text;
+            if (before === null && expressive()) {
+                layer.badge.set_scale(0, 0);
+                spring(layer.badge, {scale_x: 1, scale_y: 1}, {spring: SPRINGS.pop});
+            }
+            return;
+        }
+        layer.badge.set_scale(1.3, 1.3);
+        spring(layer.badge, {scale_x: 1, scale_y: 1}, {spring: SPRINGS.pop});
+        layer.counter = run(layer.badge, COUNT_MS, ms => {
+            layer.count.text = countBetween(before, text, Math.min(1, normal(ms) / COUNT_MS));
+        }, () => {
+            layer.counter = null;
+            layer.count.text = text;
+        });
+    }
+
     // Adds a layer over an app's tile for the ring and the count.
     decorate(button, dock) {
         if (button.kind !== 'app' || !button.tileBin)
@@ -246,8 +281,9 @@ export class Status extends EventEmitter {
         });
         stack.add_child(badge);
         parent.insert_child_at_index(stack, index);
-        button.statusLayer = {stack, ring, badge, count};
-        button.tileBin.child?.set_pivot_point(0.5, 0.5);
+        button.statusLayer = {stack, ring, badge, count, shown: null, counter: null};
+        badge.set_pivot_point(0.5, 0.5);
+        iconOf(button)?.set_pivot_point(0.5, 0.5);
         badge.translation_x = Math.round(6 * dock.scale);
         badge.translation_y = -Math.round(6 * dock.scale);
     }
@@ -261,7 +297,7 @@ export class Status extends EventEmitter {
         const counted = entry?.countVisible && entry.count > 0;
         layer.badge.visible = Boolean(counted);
         if (counted) {
-            layer.count.text = Words.badge(entry.count);
+            this._count(layer, Words.badge(entry.count));
             layer.badge.set_style(
                 `background-color: ${roles.primary}; color: ${roles.onPrimary};` +
                 `border: 2px solid ${rgba(dock.barColor ?? roles.highest)};`);
@@ -270,8 +306,10 @@ export class Status extends EventEmitter {
         layer.ring.visible = progress;
         if (progress)
             layer.ring.set(entry.progress);
+        if (!counted)
+            layer.shown = null;
         // The ring takes room, so the icon steps back by 8 px.
-        const icon = button.tileBin.child;
+        const icon = iconOf(button);
         const size = button.tileBin.width || dock.iconPx;
         const shrink = progress ? (size - 8) / size : 1;
         if (icon) {

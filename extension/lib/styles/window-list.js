@@ -19,6 +19,7 @@ export class WindowListStyle extends FloatingBarStyle {
     }
 
     hovered(button, hover) {
+        super.hovered(button, hover);
         if (this._pending)
             GLib.source_remove(this._pending);
         this._pending = 0;

@@ -5,12 +5,11 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
-import {SPATIAL, STATE_MS, ease} from '../motion.js';
+import {SPRINGS, spring} from '../choreo.js';
 import {HarborRunLine} from '../runline.js';
 import {text} from '../text.js';
 import * as Words from '../words.js';
-import {ICON_SHARE} from './floating-bar.js';
-import {Style, box} from './base.js';
+import {Style, box, rectIn} from './base.js';
 
 export class ExpressiveRailStyle extends Style {
     constructor(host) {
@@ -18,7 +17,7 @@ export class ExpressiveRailStyle extends Style {
         this._pillFor = null;
         this.pill = new St.Button({style_class: 'harbor-rail-pill', reactive: true, visible: false});
         const inner = new St.BoxLayout({style_class: 'harbor-rail-pill-box'});
-        this.pillPlace = new St.Bin({width: this.px(48), height: this.px(48)});
+        this.pillPlace = new St.Bin({width: this.pillHeight - this.px(8), height: this.pillHeight - this.px(8)});
         const words = new St.BoxLayout({style_class: 'harbor-rail-words'});
         this.pillName = text('nav-label');
         this.pillCount = text('label');
@@ -50,7 +49,11 @@ export class ExpressiveRailStyle extends Style {
     }
 
     get depth() {
-        return this.px(80);
+        return this.slotSize + this.px(22);
+    }
+
+    get pillHeight() {
+        return Math.round(this.slotSize * 0.82);
     }
 
     buildRoot() {
@@ -67,15 +70,8 @@ export class ExpressiveRailStyle extends Style {
         const vertical = this.host.vertical;
         const side = this.host.side;
         const content = box(!vertical, 'harbor-item-box');
-        const size = button.kind === 'show-apps' ? this.host.iconPx + this.px(8) : this.host.iconPx;
-        const tile = new St.Bin({
-            width: size, height: size,
-            child: button.kind === 'app'
-                ? button.item.app.create_icon_texture(Math.round(size * ICON_SHARE))
-                : new St.Icon({icon_name: button.kind === 'show-apps' ? 'view-app-grid-symbolic' : null, icon_size: Math.round(size * 0.42)}),
-        });
-        if (button.kind === 'place')
-            button.placeIcon = tile.child;
+        const tile = this.makeSlot(button);
+        const size = this.slotSize;
         const run = new HarborRunLine({theme: this.host.theme, vertical, scale: this.s, focusedLength: this.px(24), runningLength: this.px(8)});
         run.opacity = button.kind === 'app' ? 255 : 0;
         // The line sits at the screen edge; the gap between grows with the rail.
@@ -113,33 +109,24 @@ export class ExpressiveRailStyle extends Style {
         const monitor = this.host.monitor;
         const pad = this.px(16);
         const along = this.px(12);
-        this.body.set_style(`background-color: ${roles.surf}; ${vertical ? `padding: ${along}px 0;` : `padding: 0 ${pad}px;`}` +
+        this.body.set_style(`${vertical ? `padding: ${along}px 0;` : `padding: 0 ${pad}px;`}` +
             `${vertical ? 'width' : 'height'}: ${this.depth}px;`);
-        this.apps.set_style(`spacing: ${this.px(8)}px;`);
-        this.ends.set_style(`spacing: ${this.px(8)}px;`);
+        this.bar(this.body, this.tileStyle(roles.surf, 0, this.host.barAlpha));
+        this.apps.set_style(`spacing: ${this.px(4)}px;`);
+        this.ends.set_style(`spacing: ${this.px(4)}px;`);
         if (!monitor)
             return;
-        this.pill.set_style(`background-color: ${roles.pc}; color: ${roles.onPc}; border-radius: ${this.px(28)}px; padding: ${this.px(4)}px;`);
-        this.pillPlace.set_style(`background-color: ${roles.primary}; color: ${roles.onPrimary}; border-radius: ${this.px(24)}px;`);
+        this.pill.set_style(`background-color: ${roles.pc}; color: ${roles.onPc}; border-radius: ${Math.round(this.pillHeight / 2)}px; padding: ${this.px(4)}px;`);
+        this.pillPlace.set_style('background-color: transparent;');
         this.pill.get_child().set_style(`spacing: ${this.px(12)}px; padding-right: ${this.px(14)}px;`);
         this.pill.get_child().get_children()[1].set_style(`spacing: ${this.px(8)}px;`);
     }
 
     paint(button) {
-        const roles = this.host.theme.roles;
         const item = button.item;
-        if (button.kind === 'app') {
-            const attention = this.host.attentionFor(button);
-            button.tileBin.set_style(this.tileStyle(attention ? this.host.theme.warn : roles[item.tone], this.px(16)));
+        this.paintSlot(button);
+        if (button.kind === 'app')
             button.run.set({windows: item.windows.length, focused: item.focused, playing: this.host.playing(item)});
-        } else if (button.kind === 'place') {
-            button.placeIcon.icon_name = item.iconName ?? null;
-            if (item.gicon)
-                button.placeIcon.gicon = item.gicon;
-            button.tileBin.set_style(`${this.tileStyle(roles.high, this.px(16))} color: ${roles.onVar};`);
-        } else {
-            button.tileBin.set_style(`${this.tileStyle(roles.tc, this.px(20))} color: ${roles.onTc};`);
-        }
         this.host.paintStatus(button);
         if (button === this._pillFor)
             this._fillPill(button);
@@ -164,21 +151,29 @@ export class ExpressiveRailStyle extends Style {
             this.pill.visible = false;
             return;
         }
-        this.pillPlace.set_child(button.item.app.create_icon_texture(this.px(30)));
+        this.pillPlace.set_child(button.item.app.create_icon_texture(this.pillHeight - this.px(12)));
         this._fillPill(button);
         this.pill.visible = true;
         this._placePill(true);
+    }
+
+    // The pill's own width, also while a set width is springing toward it.
+    _pillNatural() {
+        const [, inner] = this.pill.get_child().get_preferred_width(-1);
+        const [, natural] = this.pill.get_theme_node().adjust_preferred_width(inner, inner);
+        return natural;
     }
 
     _placePill(unfold = false) {
         const button = this._pillFor;
         if (!button?.get_stage())
             return;
-        const r = this.positionOf(button.tileBin);
+        // From the layout, not from where an appearing slot has grown to.
+        const r = rectIn(button.tileBin, this.actor);
         if (!r)
             return;
-        const height = this.px(56);
-        const [, natural] = this.pill.get_preferred_width(height);
+        const height = this.pillHeight;
+        const natural = this._pillNatural();
         const side = this.host.side;
         const cx = r.x + r.width / 2;
         const cy = r.y + r.height / 2;
@@ -190,7 +185,8 @@ export class ExpressiveRailStyle extends Style {
         if (side === 'right') {
             to = cx + height / 2 - natural;
         } else if (side === 'bottom') {
-            y -= this.px(28);
+            // Above the rail, only its foot still on the app's slot.
+            y = r.y - height + this.px(14);
             to = cx - natural / 2;
         }
         this.pill.set_height(height);
@@ -198,7 +194,7 @@ export class ExpressiveRailStyle extends Style {
         if (unfold) {
             this.pill.x = Math.round(from);
             this.pill.width = height;
-            ease(this.pill, {width: natural, x: Math.round(to)}, {duration: STATE_MS, mode: SPATIAL});
+            spring(this.pill, {width: natural, x: Math.round(to)}, {spring: SPRINGS.spread});
         } else {
             this.pill.x = Math.round(to);
             this.pill.width = natural;

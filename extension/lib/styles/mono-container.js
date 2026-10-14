@@ -1,14 +1,14 @@
 // Mono container: a round bar in the primary container colour, with every
 // icon in one colour. Running apps show fully, closed ones fade back, and
-// the focused app sits on a primary circle.
+// a primary shape glides behind the focused app.
 
 import Clutter from 'gi://Clutter';
 import Cogl from 'gi://Cogl';
 import Gio from 'gi://Gio';
 import St from 'gi://St';
 
-import {rgb} from '../palettes.js';
-import {FloatingBarStyle, ICON_SHARE} from './floating-bar.js';
+import {mix, rgb} from '../palettes.js';
+import {FloatingBarStyle} from './floating-bar.js';
 
 const CLOSED_OPACITY = 153;
 
@@ -42,35 +42,41 @@ function coglColor(hex) {
 
 export class MonoContainerStyle extends FloatingBarStyle {
     get barPadding() {
-        return Math.round((this.px(72) - this.tile - this.px(10)) / 2);
+        return this.px(8);
     }
 
+    // Fully round at its ends.
     get barRadius() {
-        return this.px(36);
+        return Math.round(this.slotSize / 2 + this.barPadding);
     }
 
     get barColor() {
         return this.host.theme.roles.pc;
     }
 
-    get showAppsSize() {
-        return this.tile;
+    focusColor() {
+        return this.host.theme.roles.primary;
     }
 
-    get showAppsRadius() {
-        return this.px(16);
+    // Show apps stands out in the on-colour; hover only darkens the bar a
+    // little.
+    slotColor(button) {
+        const roles = this.host.theme.roles;
+        return button.kind === 'show-apps' ? roles.onPc : mix(roles.pc, roles.onPc, 0.25);
     }
 
-    icon(button, size) {
-        if (button.kind !== 'app')
-            return super.icon(button, size);
-        const iconSize = Math.round(size * 0.5);
+    glyphColor(button) {
+        const roles = this.host.theme.roles;
+        return button.kind === 'show-apps' ? roles.pc : roles.onPc;
+    }
+
+    appIcon(button, iconSize) {
         const name = symbolicName(button.item.app);
         if (name)
-            return new St.Icon({icon_name: name, icon_size: iconSize});
+            return new St.Icon({icon_name: name, icon_size: Math.round(iconSize * 0.62)});
         // Without a symbolic icon the real one is tinted, which reads the
         // same from a distance.
-        const icon = button.item.app.create_icon_texture(Math.round(size * ICON_SHARE * 0.8));
+        const icon = button.item.app.create_icon_texture(Math.round(iconSize * 0.82));
         button.tint = new Clutter.ColorizeEffect();
         icon.add_effect(button.tint);
         return icon;
@@ -87,28 +93,21 @@ export class MonoContainerStyle extends FloatingBarStyle {
     paintRoot() {
         super.paintRoot();
         const roles = this.host.theme.roles;
-        this.body.set_style(`${this.tileStyle(roles.pc, this.barRadius)} padding: ${this.barPadding}px ${this.px(10)}px; spacing: ${this.px(6)}px;`);
+        this.bar(this.body, this.tileStyle(roles.pc, this.barRadius, this.host.barAlpha));
         this.separator.set_style(`background-color: ${roles.onPc}; opacity: 0.4;`);
     }
 
     paint(button) {
+        super.paint(button);
         const roles = this.host.theme.roles;
+        if (button.kind !== 'app')
+            return;
         const item = button.item;
-        if (button.kind === 'app') {
-            const focused = item.focused;
-            const color = focused ? roles.onPrimary : roles.onPc;
-            const circle = focused ? `background-color: ${roles.primary}; border-radius: ${Math.round(this.tile / 2)}px;` : 'background-color: transparent;';
-            button.tileBin.set_style(`${circle} color: ${color};`);
-            button.tint?.set_tint(coglColor(color));
-            button.tileBin.opacity = item.windows.length > 0 ? 255 : CLOSED_OPACITY;
-            // Window counts as dots, also a single one.
-            button.run.set({windows: item.windows.length, focused: false, playing: this.host.playing(item)});
-        } else if (button.kind === 'place') {
-            super.paint(button);
-            button.tileBin.set_style(`background-color: transparent; color: ${roles.onPc};`);
-        } else {
-            button.tileBin.set_style(`${this.tileStyle(roles.onPc, this.showAppsRadius)} color: ${roles.pc};`);
-        }
-        this.host.paintStatus(button);
+        const color = item.focused ? roles.onPrimary : roles.onPc;
+        button.icon.set_style(`color: ${color};`);
+        button.tint?.set_tint(coglColor(color));
+        button.icon.opacity = item.windows.length > 0 ? 255 : CLOSED_OPACITY;
+        // Window counts as dots, also a single one.
+        button.run.set({windows: item.windows.length, focused: false, playing: this.host.playing(item)});
     }
 }

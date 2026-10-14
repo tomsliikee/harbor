@@ -7,6 +7,7 @@ import Meta from 'gi://Meta';
 import St from 'gi://St';
 
 import {shownWorkspaces} from '../layout.js';
+import {BLOOM, COOKIE} from '../shapes.js';
 import {text} from '../text.js';
 import * as Words from '../words.js';
 import {FloatingBarStyle} from './floating-bar.js';
@@ -23,10 +24,12 @@ export class WorkspaceSplitStyle extends FloatingBarStyle {
         this.apps = box(vertical);
         this.separator = new St.Widget();
         this.ends = box(vertical);
+        this.separator._harborItem = true;
+        this.separator.set_pivot_point(0.5, 0.5);
         this.middle.add_child(this.apps);
         this.middle.add_child(this.separator);
         this.middle.add_child(this.ends);
-        this.right = new St.Bin({style_class: 'harbor-split-part harbor-floating'});
+        this.right = new St.Bin({style_class: 'harbor-split-part'});
         root.add_child(this.spaces);
         root.add_child(this.middle);
         root.add_child(this.right);
@@ -34,12 +37,25 @@ export class WorkspaceSplitStyle extends FloatingBarStyle {
         return root;
     }
 
-    get showAppsSize() {
-        return this.px(72);
+    // Parts appear one after another: the workspaces, the apps, Show apps.
+    revealGroups() {
+        const ghost = part => [this._bars.get(part)].filter(bar => bar && part.visible);
+        return [
+            {bars: ghost(this.spaces), items: this.spaces.get_children()},
+            {bars: ghost(this.middle), items: this.revealItems(this.middle)},
+            {bars: [], items: this.revealItems(this.right)},
+        ];
     }
 
-    get showAppsRadius() {
-        return this.px(24);
+    // Show apps is a part of its own, as deep as the others.
+    makeSlot(button, options = {}) {
+        if (button.kind !== 'show-apps')
+            return super.makeSlot(button, options);
+        return super.makeSlot(button, {
+            ...options,
+            size: this.slotSize + 6 + 2 * this.px(8),
+            solid: {form: COOKIE, hoverForm: BLOOM, scale: 0.94, hoverScale: 1},
+        });
     }
 
     arrange({pinned, running, places, showApps}) {
@@ -51,6 +67,7 @@ export class WorkspaceSplitStyle extends FloatingBarStyle {
             this.right.set_child(showApps);
         }
         showApps.run.visible = false;
+        this.setFocus([...pinned, ...running].find(button => button.item.focused) ?? null);
         this._syncSpaces();
     }
 
@@ -69,6 +86,7 @@ export class WorkspaceSplitStyle extends FloatingBarStyle {
             label.x_align = Clutter.ActorAlign.CENTER;
             const segment = new St.Button({style_class: 'harbor-space', child: label, can_focus: true, reactive: true, track_hover: true});
             segment.workspace = index;
+            segment.set_pivot_point(0.5, 0.5);
             segment.place = shown.length === 1 ? 'only' : i === 0 ? 'first' : i === shown.length - 1 ? 'last' : 'middle';
             segment.connect('clicked', () => {
                 global.workspace_manager.get_workspace_by_index(index)?.activate(global.get_current_time());
@@ -89,7 +107,10 @@ export class WorkspaceSplitStyle extends FloatingBarStyle {
         const vertical = this.host.vertical;
         const outer = this.px(22);
         const inner = this.px(8);
-        const [w, h] = vertical ? [this.px(56), this.px(44)] : [this.px(44), this.px(56)];
+        // As deep as an app with its run line, so the parts line up.
+        const across = this.slotSize + 6;
+        const along = Math.round(this.slotSize * 0.62);
+        const [w, h] = vertical ? [across, along] : [along, across];
         for (const segment of this.spaces.get_children()) {
             const active = segment.workspace === this.snapshot.activeWorkspace;
             const first = segment.place === 'first' || segment.place === 'only';
@@ -109,13 +130,14 @@ export class WorkspaceSplitStyle extends FloatingBarStyle {
         const roles = this.host.theme.roles;
         const pad = this.px(8);
         this.body.set_style(`spacing: ${this.px(8)}px;`);
-        const part = `${this.tileStyle(roles.highest, this.px(32), this.host.barAlpha)} padding: ${pad}px;`;
-        this.spaces.set_style(`${part} spacing: 2px;`);
-        this.middle.set_style(`${part} spacing: ${this.px(6)}px;`);
-        // Show apps is a part of its own; its tile is the whole part.
-        this.right.set_style(`border-radius: ${this.showAppsRadius}px;`);
-        this.apps.set_style(`spacing: ${this.px(6)}px;`);
-        this.ends.set_style(`spacing: ${this.px(6)}px;`);
+        const look = this.tileStyle(roles.highest, this.px(32), this.host.barAlpha);
+        this.spaces.set_style(`padding: ${pad}px; spacing: 2px;`);
+        this.middle.set_style(`padding: ${pad}px; spacing: ${this.px(4)}px;`);
+        this.bar(this.spaces, look);
+        this.bar(this.middle, look);
+        // Show apps is a part of its own: its shape is the whole part.
+        this.apps.set_style(`spacing: ${this.px(2)}px;`);
+        this.ends.set_style(`spacing: ${this.px(2)}px;`);
         if (this.host.vertical)
             this.separator.set_size(this.px(36), 1);
         else

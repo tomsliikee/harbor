@@ -6,6 +6,7 @@ import St from 'gi://St';
 
 import {text} from '../text.js';
 import * as Words from '../words.js';
+import {rectIn} from './base.js';
 import {FloatingBarStyle} from './floating-bar.js';
 
 const GAP = 6;
@@ -69,7 +70,7 @@ export class StatusStyle extends FloatingBarStyle {
         const pill = this._pills.get(button);
         if (!pill || !button.get_stage())
             return;
-        const r = this.positionOf(button);
+        const r = rectIn(button, this.actor);
         if (!r)
             return;
         const [, w] = pill.get_preferred_width(-1);

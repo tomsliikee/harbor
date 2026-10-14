@@ -21,4 +21,6 @@ test('unity uri', () => equal([Layout.appIdFromUri('application://firefox.deskto
 test('mpris entry', () => equal(Layout.appIdFromDesktopEntry('spotify'), 'spotify.desktop'));
 test('magnification', () => equal([0, 1, 2, 3, 0.5].map(d => Math.round(Layout.magnification(d) * 1000) / 1000),
     [1.45, 1.2, 1.08, 1, 1.325]));
+test('from the middle outwards', () => equal([Layout.fromCenter(5), Layout.fromCenter(4), Layout.fromCenter(1)],
+    [[2, 1, 0, 1, 2], [1, 0, 0, 1], [0]]));
 done('layout');

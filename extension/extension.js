@@ -5,10 +5,12 @@ import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 import {ExtensionState} from 'resource:///org/gnome/shell/misc/extensionUtils.js';
 
 import * as Actions from './lib/actions.js';
+import {setMotion} from './lib/choreo.js';
 import {Docks} from './lib/docks.js';
 import {HarborIndicator} from './lib/indicator.js';
 import {Model} from './lib/model.js';
 import {Places} from './lib/places.js';
+import {Power} from './lib/power.js';
 import {Popup} from './lib/popup.js';
 import {SettingsStore} from './lib/settings.js';
 import {Status} from './lib/status.js';
@@ -22,15 +24,18 @@ export default class HarborExtension extends Extension {
     enable() {
         this._idle = 0;
         this._settings = new SettingsStore(settings => this._settingsChanged(settings));
+        setMotion(this._settings.current);
         this._theme = new ThemeController(this._settings.current.colour);
         this._model = new Model();
         this._places = new Places();
         this._status = new Status(this._theme);
+        this._power = new Power();
         this._docks = new Docks({
             theme: this._theme,
             model: this._model,
             places: this._places,
             status: this._status,
+            power: this._power,
             settings: () => this._settings.current,
             onState: () => this._queueRender(),
         });
@@ -73,6 +78,8 @@ export default class HarborExtension extends Extension {
         this._places = null;
         this._status.destroy();
         this._status = null;
+        this._power.destroy();
+        this._power = null;
         this._indicator.destroy();
         this._popup = null;
         this._indicator = null;
@@ -113,6 +120,8 @@ export default class HarborExtension extends Extension {
     // A click in the menu acts like one in the dock; a list opens there.
     _activate(entry) {
         const dock = this._docks.all[0];
+        if (entry.windows.length === 0)
+            dock?.buttonFor(entry.id)?.markLaunching();
         Actions.primary(entry, {onList: () => {
             const button = dock?.buttonFor(entry.id);
             if (button) {
@@ -129,6 +138,7 @@ export default class HarborExtension extends Extension {
     }
 
     _settingsChanged(settings) {
+        setMotion(settings);
         this._theme.setColour(settings.colour);
         this._popup.setSettings(settings);
         this._docks.setSettings(settings);

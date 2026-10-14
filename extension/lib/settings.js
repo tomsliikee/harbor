@@ -11,10 +11,15 @@ export const STYLES = [
     'loud-tile', 'mono-container', 'window-list', 'pebbles', 'workspace-split',
 ];
 export const POSITIONS = ['left', 'bottom', 'right'];
-export const ICON_SIZES = ['small', 'medium', 'large', 'huge'];
+export const ICON_SIZES = ['small', 'medium', 'large'];
 export const WHEN_WINDOW_CLOSE = ['stay', 'make-room', 'hide'];
+export const MOTION_SPEEDS = ['quick', 'normal', 'slow'];
 
-export const ICON_PX = {small: 40, medium: 48, large: 56, huge: 64};
+// The size of an app's own icon as the dock shows it.
+export const ICON_PX = {small: 52, medium: 64, large: 76};
+
+// Values an earlier Harbor wrote that mean something else now.
+const RENAMED = {iconSize: {huge: 'large'}};
 
 const CHOICES = {
     style: STYLES,
@@ -22,7 +27,16 @@ const CHOICES = {
     iconSize: ICON_SIZES,
     whenWindowClose: WHEN_WINDOW_CLOSE,
     colour: COLOURS,
+    motionSpeed: MOTION_SPEEDS,
 };
+
+// Keys that hold one switch per style.
+const PER_STYLE = ['handles'];
+
+function perStyle(value, fallback) {
+    const source = value !== null && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    return Object.fromEntries(STYLES.map(style => [style, typeof source[style] === 'boolean' ? source[style] : fallback]));
+}
 
 export const DEFAULTS = Object.freeze({
     style: 'floating-bar',
@@ -33,6 +47,15 @@ export const DEFAULTS = Object.freeze({
     countsOnIcons: true,
     everyMonitor: false,
     colour: 'blue',
+    // Whether a thin handle stays at the edge while the dock is away.
+    handles: Object.freeze(perStyle(null, true)),
+    handleHover: true,
+    seeThrough: false,
+    expressiveMotion: true,
+    alwaysMoving: false,
+    motionSpeed: 'normal',
+    // Writes what the dock decides to the journal; not in the menu.
+    debug: false,
 });
 
 // Takes whatever was parsed (or nothing) and returns complete settings.
@@ -40,8 +63,10 @@ export function normalize(raw) {
     const source = raw !== null && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const settings = {};
     for (const [key, fallback] of Object.entries(DEFAULTS)) {
-        const value = source[key];
-        if (key in CHOICES)
+        const value = RENAMED[key]?.[source[key]] ?? source[key];
+        if (PER_STYLE.includes(key))
+            settings[key] = perStyle(value, true);
+        else if (key in CHOICES)
             settings[key] = CHOICES[key].includes(value) ? value : fallback;
         else
             settings[key] = typeof value === 'boolean' ? value : fallback;
@@ -60,6 +85,8 @@ export function parse(text) {
 export function isValid(key, value) {
     if (!(key in DEFAULTS))
         return false;
+    if (PER_STYLE.includes(key))
+        return value !== null && typeof value === 'object' && STYLES.every(style => typeof value[style] === 'boolean');
     return key in CHOICES ? CHOICES[key].includes(value) : typeof value === 'boolean';
 }
 
