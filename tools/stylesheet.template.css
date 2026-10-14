@@ -26,7 +26,135 @@
     spacing: 12px;
 }
 
+/* The menu */
+
+.harbor-popup {
+    padding: 0;
+    border: none;
+    border-radius: 28px;
+}
+
+.harbor-scroll {
+    border-radius: 28px;
+}
+
+.harbor-content {
+    width: 320px;
+    padding: 16px;
+    spacing: 12px;
+}
+
+.harbor-tile {
+    padding: 16px;
+    spacing: 4px;
+    border-radius: 24px;
+}
+
+.harbor-loud-most {
+    padding-top: 6px;
+}
+
+/* Rows of one group sit close; only the group's outer corners are wide. */
+.harbor-rows {
+    spacing: 4px;
+}
+
+.harbor-row {
+    padding: 12px 16px;
+    border-radius: 8px;
+}
+
+.harbor-row-header {
+    padding: 16px 16px 8px 16px;
+}
+
+.harbor-app-row {
+    padding: 10px 12px;
+}
+
+.harbor-style-row {
+    padding: 8px 12px;
+    height: 48px;
+}
+
+.harbor-more-row {
+    padding: 8px 16px;
+    height: 44px;
+    border-radius: 8px 8px 24px 24px;
+}
+
+.harbor-row-box {
+    spacing: 12px;
+}
+
+.harbor-row-first {
+    border-radius: 24px 24px 8px 8px;
+}
+
+.harbor-row-last {
+    border-radius: 8px 8px 24px 24px;
+}
+
+.harbor-row-only {
+    border-radius: 24px;
+}
+
+.harbor-focus-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+}
+
+.harbor-pinned {
+    border-radius: 9px;
+}
+
+.harbor-chevron {
+    width: 48px;
+    height: 28px;
+    border-radius: 14px;
+}
+
+.harbor-chevron-inline {
+    width: 28px;
+    height: 28px;
+    border-radius: 14px;
+}
+
+.harbor-settings {
+    spacing: 20px;
+}
+
+.harbor-block {
+    spacing: 8px;
+}
+
+.harbor-segments {
+    spacing: 2px;
+}
+
+.harbor-switches {
+    spacing: 16px;
+}
+
+.harbor-switch-box {
+    spacing: 12px;
+}
+
+.harbor-swatches {
+    spacing: 12px;
+}
+
+.harbor-swatch {
+    border-radius: 16px;
+}
+
+.harbor-footer {
+    padding: 0 4px;
+}
+
 /* themed */
+
 
 .harbor-scheme.harbor-peek {
     background-color: $surf;
@@ -35,4 +163,65 @@
 
 .harbor-scheme .harbor-muted {
     color: $onVar;
+}
+
+.harbor-scheme.harbor-popup {
+    background-color: $surf;
+    color: $on;
+}
+
+.harbor-scheme .harbor-tile,
+.harbor-scheme .harbor-row {
+    background-color: $bright;
+    color: $on;
+}
+
+.harbor-scheme .harbor-tile-loud {
+    background-color: $pc;
+}
+
+.harbor-scheme .harbor-loud-text {
+    color: $onPc;
+}
+
+.harbor-scheme .harbor-row:hover,
+.harbor-scheme .harbor-row:focus {
+    background-color: $high;
+}
+
+.harbor-scheme .harbor-style-row {
+    background-color: $surf;
+}
+
+.harbor-scheme .harbor-settings .harbor-more-row {
+    background-color: $surf;
+}
+
+.harbor-scheme .harbor-style-row.harbor-selected {
+    background-color: $pc;
+    color: $onPc;
+}
+
+.harbor-scheme .harbor-focus-dot {
+    background-color: $primary;
+}
+
+.harbor-scheme .harbor-chevron {
+    background-color: $high;
+    color: $onVar;
+}
+
+.harbor-scheme .harbor-chevron:hover,
+.harbor-scheme .harbor-chevron:focus {
+    background-color: $highest;
+}
+
+.harbor-scheme .harbor-chevron-inline {
+    color: $onVar;
+}
+
+.harbor-scheme .harbor-switch-row,
+.harbor-scheme .harbor-swatch,
+.harbor-scheme .harbor-pinned {
+    background-color: transparent;
 }

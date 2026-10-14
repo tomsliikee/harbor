@@ -46,3 +46,13 @@ export function rgba(hex, alpha = 1) {
     const [r, g, b] = rgb(hex).map(channel => Math.round(channel * 255));
     return `rgba(${r},${g},${b},${alpha})`;
 }
+
+// A colour on the way from one hex to another, for colour transitions that
+// are drawn or set in code.
+export function mix(from, to, t) {
+    const a = rgb(from);
+    const b = rgb(to);
+    const k = Math.max(0, Math.min(1, t));
+    const channels = a.map((value, i) => Math.round((value + (b[i] - value) * k) * 255));
+    return `#${channels.map(value => value.toString(16).padStart(2, '0')).join('')}`;
+}
