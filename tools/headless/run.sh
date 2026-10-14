@@ -7,7 +7,7 @@
 # <script> is a file in tools/headless/scripts, without ".js". Screenshots
 # and the log go to $HARBOR_OUT (default: a folder in the system's temp).
 #
-#   HARBOR_WITH="tally@thomashaiden=$HOME/git/tally/extension ..."
+#   HARBOR_WITH="<uuid>=<path to its extension folder> ..."
 #       loads other extensions first, to show that they live side by side.
 #   HARBOR_MONITORS=2   two virtual monitors instead of one.
 #   HARBOR_SCHEME=light|dark   the desktop's colour scheme (default light).

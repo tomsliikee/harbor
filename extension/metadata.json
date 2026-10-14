@@ -1,6 +1,7 @@
 {
     "uuid": "harbor@thomashaiden",
     "name": "Harbor",
-    "description": "A dock in Toms Expressive Design: pinned and running apps, eleven styles, settings in the top bar.",
-    "shell-version": ["50"]
+    "description": "A dock in Toms Expressive Design: pinned and running apps, ten styles, settings in the top bar.",
+    "shell-version": ["50"],
+    "url": "https://github.com/tomsliikee/harbor"
 }

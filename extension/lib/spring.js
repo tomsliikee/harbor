@@ -1,4 +1,4 @@
-// The springs of Material 3 Expressive, as in Ledge: where a mass on a
+// The springs of Material 3 Expressive: where a mass on a
 // spring is at a given time, on its way from 0 to 1. Spatial springs (moving, scaling,
 // shapes) are underdamped and pass their target before they settle; effect
 // springs (opacity, colour, counting numbers) never do.

@@ -39,7 +39,7 @@ Gio._promisify(Shell.Screenshot.prototype, 'pick_color');
 const LEAVE_MS = 500;
 // Sizes and paddings are drawn for this icon size and scaled from it.
 const BASE_ICON = 48;
-// "See-through", as in Ledge.
+// How opaque the bars are with "See-through" on.
 const SEE_THROUGH = 0.78;
 
 // Appearing, at normal speed: the handle rises and swells into the dock's

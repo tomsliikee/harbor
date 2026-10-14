@@ -21,13 +21,13 @@
 
 It decides most things by itself: what a click does, when it gets out of the way, and how large its icons can be on your screen. What is left to choose sits in the top bar menu, behind a chevron. Each choice takes effect at once.
 
-Harbor sends no notifications, reads nothing from the network and keeps one small settings file.
+Harbor sends no notifications, reads nothing from the network and keeps one small settings file (see [What Harbor Reads and Writes](#what-harbor-reads-and-writes)).
 
 ---
 
 ## Features
 
-- **Eleven Styles:** From a floating bar to pebbles, an edge-to-edge rail or a split by workspace (see [The Styles](#the-styles)).
+- **Ten Styles:** From a floating bar to pebbles, an edge-to-edge rail or a split by workspace (see [The Styles](#the-styles)).
 - **Pinned and Running:** Pinned apps first, then apps that run without being pinned, then drives, the trash and **Show apps**.
 - **Symbols on Round Tiles:** Every app rests on a round tile with a flat symbol in one colour: brand logos for apps like **Firefox**, **Claude** or **LibreOffice**, Material symbols for the rest. Closed apps share one quiet colour, running apps show their own tone, and the focused app is a black square (white in dark mode) that glides from app to app (see [Symbols](#symbols)).
 - **Expressive Motion:** The handle rises and swells into the dock, which spreads to both sides with a swing, and lets the icons pop up from the middle outwards (see [Motion](#motion)).
@@ -115,7 +115,7 @@ With **Symbolic icons** off, the apps' own colour icons rest on the same tiles. 
 | **Symbolic icons** | **On**, Off | Flat symbols in the dock's colours instead of the apps' own icons (see [Symbols](#symbols)). |
 | **Ink focus** | **On**, Off | The focused app is black, in dark mode white; off, it takes the primary colour. |
 | **Light dock** | On, **Off** | The dock, its menus and tooltips stay light when the desktop is dark. The top bar menu still follows the desktop. |
-| **See-through** | On, **Off** | The bars at **78 %**, as in **Ledge**. |
+| **See-through** | On, **Off** | The bars at **78 %** opacity, so the wallpaper shows through. |
 | **Expressive motion** | **On**, Off | Springs for appearing, going and every state; off, the dock slides as calmly as before. |
 | **Speed of motion** | Quick, **Normal**, Slow | About **350**, **500** or **700 ms** for the dock to appear; all motion follows. |
 | **Always moving** | On, **Off** | Shapes turn slowly while nothing happens. Rests on battery and while the dock is away. |
@@ -149,7 +149,7 @@ journalctl -f -o cat /usr/bin/gnome-shell | grep Harbor
 | **Hover and click** | The tile morphs into a cookie and lifts **4 px** together with its symbol (the focus square too); a press pushes the tile in and it springs back. |
 | **Counts and attention** | A new count pops and counts up; an app that waits wiggles every **4 s** and pulses. |
 
-The springs are Material 3 Expressive's, as in **Ledge**. GNOME's own **Animations** switch turns all of it off.
+The springs are **Material 3 Expressive**'s: spatial springs pass their target and settle, effect springs (opacity, colour, numbers) never overshoot. GNOME's own **Animations** switch turns all of it off.
 
 ---
 
@@ -187,6 +187,31 @@ These are not settings, on purpose. If one of them is wrong for you, the fix bel
 
 ---
 
+## Requirements
+
+| Platform | Session | Status |
+| :--- | :--- | :--- |
+| **GNOME Shell 50** | **Wayland** | ***Tested*** on **Fedora 44** (GNOME Shell 50.5) and in the headless shell. |
+| **GNOME Shell 49 and older** | Any | ***Not supported.*** `metadata.json` names version 50 only; older shells refuse to load it. |
+| **Other desktops** (KDE Plasma, Xfce, macOS, Windows) | — | ***Not applicable.*** Harbor is a GNOME Shell extension. |
+
+Nothing else is needed: no other extension, no package, no network. **Google Sans Flex** is bundled and installed for your user if it is missing.
+
+---
+
+## What Harbor Reads and Writes
+
+| What | Where | Why |
+| :--- | :--- | :--- |
+| **Settings** | **`~/.config/harbor/settings.json`** | Every choice from the menu, and the symbols you picked. Watched, so an edit by hand takes effect at once. |
+| **Font** | **`~/.local/share/fonts/GoogleSansFlex.woff2`** | Copied by `install.sh` only if no **Google Sans Flex** is installed. |
+| **Screen colour beside the handle** | Memory only | While the handle shows, the shell's own colour picker reads **5 pixels** beside it every **1.5 s** to choose white or black. Nothing is stored or sent. |
+| **Unread counts, progress, music** | Session bus | Signals that apps send anyway (see [Where Status Comes From](#where-status-comes-from)). |
+
+Harbor makes no network requests and sends no notifications.
+
+---
+
 ## Installation
 
 ```bash
@@ -202,6 +227,8 @@ The script links the extension, installs **Google Sans Flex** if it is missing, 
 ```
 
 removes the link and disables Harbor; the settings file stays.
+
+**Updating** is `git pull` in the clone and a new login, since the extension is a link to it.
 
 ---
 
@@ -258,7 +285,7 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 | **Symbols** | `gjs -m tools/build-symbols.js` fetches the list in **`tools/symbols.list.js`** from **jsDelivr** at fixed versions and writes **`extension/symbols`** |
 | **Headless shell** | `tools/headless/run.sh <script> [seconds]` with a script from **`tools/headless/scripts`**; screenshots land in **`$TMPDIR/harbor-headless`** |
 | **Two monitors** | `HARBOR_MONITORS=2 tools/headless/run.sh lifecycle` |
-| **Beside other extensions** | `HARBOR_WITH="tally@thomashaiden=$HOME/git/tally/extension" tools/headless/run.sh lifecycle` |
+| **Beside other extensions** | `HARBOR_WITH="<uuid>=<path to its extension folder>" tools/headless/run.sh lifecycle` |
 
 ---
 
@@ -274,10 +301,11 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 | **All ten styles at three edges, light and dark** | ***Tested*** in the headless shell by screenshot. |
 | **Clicks, right-click menu, window list, pinning by drop, making room** | ***Tested*** in the headless shell with a virtual pointer. |
 | **The edge with a real touchpad, the room kept by Stay and the rail, smoothness on real hardware, Always moving on battery** | ***Built.*** The edge was tested with a virtual pointer; the rest was not measured. |
-| **Two monitors, overview, switching off and on through every style** | ***Tested*** in the headless shell, beside **Tally**, **Ember** and **Torch**, without errors. |
+| **Two monitors, overview, switching off and on through every style** | ***Tested*** in the headless shell, beside three other extensions, without errors. |
 | **Dragging with a real mouse, the app grid as a drag source** | ***Built.*** The drop itself is tested; a real drag is not. |
 | **Real LauncherEntry and MPRIS senders** | ***Built.*** Tested with states handed in by the test script. |
-| **A real session after login, real second monitor, symbols with your own apps and icon theme** | ***Planned:*** not yet run outside the headless shell. |
+| **A real session** | ***Tested*** by use on one laptop (**Fedora 44**, **GNOME Shell 50.5**, Wayland) up to round tiles, ink focus, the hover lift and the handle colour. The opening out of the handle, the **Extended bar** and its pill spacing have only run in the headless shell so far. |
+| **A real second monitor, other distributions, other icon themes** | ***Planned:*** not yet run. |
 
 ---
 
@@ -294,7 +322,7 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 - **Bars painted behind the buttons:** A bar is drawn by a stand-in on a layer below the icons, so it can spread from a pill and a focus shape can glide between it and the icons.
 - **Resting on the edge instead of a push:** A push of 100 px was hard on a touchpad; 200 ms on the last row is as hard to set off by passing by.
 - **Make room for the app in front only:** Every window on the workspace kept the dock away almost always.
-- **A list of styles in the menu:** Eleven styles do not fit segmented buttons; four rows show first, the chosen one always among them.
+- **A list of styles in the menu:** Ten styles do not fit segmented buttons; four rows show first, the chosen one always among them.
 - **No notification when pinning:** Pinning from the dock uses the shell's quiet calls; the change is in front of you anyway.
 - **The empty last workspace is hidden** in **Workspace split**, unless it is the active one.
 - **Show apps is a pebble too** in **Pebbles**, as are the drives and the trash.
