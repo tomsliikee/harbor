@@ -29,7 +29,7 @@ Harbor sends no notifications, reads nothing from the network and keeps one smal
 
 - **Eleven Styles:** From a floating bar to pebbles, an edge-to-edge rail or a split by workspace (see [The Styles](#the-styles)).
 - **Pinned and Running:** Pinned apps first, then apps that run without being pinned, then drives, the trash and **Show apps**.
-- **Symbols on Tiles:** Every app rests on a tile in its own tone, with a flat symbol in one colour: brand logos for apps like **Firefox**, **Claude** or **LibreOffice**, Material symbols for the rest. The focused app's tile turns primary and glides from app to app (see [Symbols](#symbols)).
+- **Symbols on Round Tiles:** Every app rests on a round tile with a flat symbol in one colour: brand logos for apps like **Firefox**, **Claude** or **LibreOffice**, Material symbols for the rest. Closed apps share one quiet colour, running apps show their own tone, and the focused app is a black square (white in dark mode) that glides from app to app (see [Symbols](#symbols)).
 - **Expressive Motion:** The dock rises as a pill from the middle of the edge, spreads to both sides with a swing, and lets the icons pop up from the middle outwards (see [Motion](#motion)).
 - **Clicks That Adapt:** One click starts, focuses or minimises; an app with several windows shows a **window list** instead of pictures of windows.
 - **Making Room:** The dock steps aside when a window of the app in front comes close, and returns when the pointer rests on the edge. A thin handle can stay behind, per style.
@@ -50,9 +50,9 @@ Harbor sends no notifications, reads nothing from the network and keeps one smal
 
 | Style | What it looks like | What is special |
 | :--- | :--- | :--- |
-| **Floating bar** | A rounded bar floating above the edge | The default. The focused app's tile is a primary one that glides from app to app. |
+| **Floating bar** | A rounded bar floating above the edge | The default. The focused app's tile is an ink square that glides from app to app; the run line hangs under the tiles in the bar's padding. |
 | **Shape stage** | A pill; every app stands on a shape | The shape is the run indicator: a circle while closed, more points with more windows. |
-| **Grouped block** | Three named groups instead of one bar | The focused app's segment turns fully round and fills with the primary colour. |
+| **Grouped block** | Three named groups instead of one bar | The focused app's segment turns fully round and fills with ink (or primary, with **Ink focus** off). |
 | **Expressive rail** | A rail along the whole edge | The focused app unfolds into a pill with its name. Always keeps its room unless set to **Hide**. |
 | **Status** | The floating bar | Status is said out loud: "64 % downloaded", "Wants attention", even with **Counts on icons** off. |
 | **Quiet handle** | A compact, calmer bar | Less padding and softer corners; made for a dock that is often away. |
@@ -110,9 +110,12 @@ With **Symbolic icons** off, the apps' own colour icons rest on the same tiles. 
 | **Where the dock sits** | Left, **Bottom**, Right | The screen edge. |
 | **Handle when away** | **On**, Off, for each style on its own | A thin grip stays at the edge while the dock is away. |
 | **Show on hover** | **On**, Off | Resting on the handle brings the dock; off, it takes a click. |
+| **Long handle** | On, **Off** | The handle is **192 px** long instead of **96 px**. |
 | **Icon size** | Small 40, **Medium 48**, Large 56, Huge 64 | The size of an app's tile; the symbol on it is half as large. Everything in a style scales with it. |
 | **When a window comes close** | Stay, **Make room**, Hide | **Stay** keeps the dock and its room; windows maximise up to it. **Make room** steps aside while a window of the app in front overlaps it. **Hide** stays away until you need it. |
 | **Symbolic icons** | **On**, Off | Flat symbols in the dock's colours instead of the apps' own icons (see [Symbols](#symbols)). |
+| **Ink focus** | **On**, Off | The focused app is black, in dark mode white; off, it takes the primary colour. |
+| **Light dock** | On, **Off** | The dock, its menus and tooltips stay light when the desktop is dark. The top bar menu still follows the desktop. |
 | **See-through** | On, **Off** | The bars at **78 %**, as in **Ledge**. |
 | **Expressive motion** | **On**, Off | Springs for appearing, going and every state; off, the dock slides as calmly as before. |
 | **Speed of motion** | Quick, **Normal**, Slow | About **350**, **500** or **700 ms** for the dock to appear; all motion follows. |
@@ -143,7 +146,7 @@ journalctl -f -o cat /usr/bin/gnome-shell | grep Harbor
 | **A new style** | It shows itself with its own appearing, even on a dock that is away. |
 | **Starting an app** | Its tile breathes between circle and cookie and the symbol hops, until the window comes (at most **10 s**). |
 | **A new or closed app** | Its neighbours move apart and it grows in, or it shrinks and they close up. |
-| **Focus** | The primary tile glides to the next app, as a cookie on the way, and follows it if it moves. |
+| **Focus** | The ink square glides to the next app, as a cookie on the way, and follows it if it moves. |
 | **Hover and click** | The tile morphs into a cookie and the symbol lifts **4 px**; a press pushes the tile in and it springs back. |
 | **Counts and attention** | A new count pops and counts up; an app that waits wiggles every **4 s** and pulses. |
 
@@ -251,6 +254,7 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 | :--- | :--- |
 | **Unit tests** | `for t in tests/*.test.js; do gjs -m "$t"; done` |
 | **Motion frame by frame** | `HARBOR_ONLY="floating-bar pebbles" tools/headless/run.sh motion 190` |
+| **Look switches on a dark desktop** | `HARBOR_SCHEME=dark tools/headless/run.sh look` |
 | **Stylesheet** | `gjs -m tools/build-stylesheet.js` |
 | **Symbols** | `gjs -m tools/build-symbols.js` fetches the list in **`tools/symbols.list.js`** from **jsDelivr** at fixed versions and writes **`extension/symbols`** |
 | **Headless shell** | `tools/headless/run.sh <script> [seconds]` with a script from **`tools/headless/scripts`**; screenshots land in **`$TMPDIR/harbor-headless`** |
@@ -263,8 +267,9 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 
 | Area | Evidence |
 | :--- | :--- |
-| **Settings, shapes, springs, words, layout rules, matching symbols to app ids** | ***Tested:*** 56 unit tests, 26 real app ids among them. |
+| **Settings, shapes, springs, words, layout rules, matching symbols to app ids** | ***Tested:*** 57 unit tests, 26 real app ids among them. |
 | **Symbols on tiles in every style, the picker, choosing, Automatic, Symbolic icons off, symbols in the top bar menu** | ***Tested*** in the headless shell (`styles`, `symbols` scripts), light and dark. |
+| **Round tiles centred in the bar, ink focus, light dock on a dark desktop, long handle** | ***Tested*** in the headless shell (`styles` at every edge, `look` script). |
 | **Appearing and going in every style, focus gliding, hover, start, attention, counts** | ***Tested*** in the headless shell, frame by frame in slow motion (`motion` script). |
 | **Make room for the app in front, edge, handle per style, see-through, minimising into the icon** | ***Tested*** in the headless shell (`behave` script). |
 | **All eleven styles at three edges, light and dark** | ***Tested*** in the headless shell by screenshot. |
@@ -281,6 +286,8 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 
 - **Colours through one stylesheet class per scheme, not only `set_style()`:** St has no CSS variables, so the stylesheet is written once per colour and scheme and a colour change swaps one class. Hover and focus states keep working this way. Values that scale or animate are set in code.
 - **Symbols on tiles, as in the design:** Free colour icons made the dock look like Dash to Dock. Every app rests on a tile in its tone (**primary**, **secondary** or **tertiary container**, chosen from its app id) with a flat symbol; a colour icon on a tile looked cramped, a symbol does not.
+- **Round tiles and an ink focus:** After a first try on the laptop the tiles became circles, as round as the shapes around them, and the focused app a black (in dark mode white) square, the strongest mark the dock has. Only running apps carry a tone, so the dock says at a glance what runs.
+- **Light dock is a view of the theme, not a second theme:** the dock reads the same colour style with the scheme held at light; the top bar menu keeps following the desktop.
 - **Symbols shipped as files, nothing at run time:** Brand logos come from **Simple Icons** (CC0), the rest from **Material Symbols** (Apache 2.0); the build script removes their fills so the shell paints them in the tile's colour.
 - **Bars painted behind the buttons:** A bar is drawn by a stand-in on a layer below the icons, so it can spread from a pill and a focus shape can glide between it and the icons.
 - **Resting on the edge instead of a push:** A push of 100 px was hard on a touchpad; 200 ms on the last row is as hard to set off by passing by.
