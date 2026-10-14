@@ -161,7 +161,13 @@ export class Dock {
             return snapshot.apps;
         return snapshot.apps.map(entry => {
             const windows = entry.windows.filter(window => window.get_monitor() === this.monitorIndex);
-            return {...entry, windows};
+            // Focus and attention count where the window is.
+            return {
+                ...entry,
+                windows,
+                focused: entry.focused && windows.length > 0,
+                attention: windows.some(window => window.demands_attention || window.urgent),
+            };
         }).filter(entry => entry.pinned || entry.windows.length > 0);
     }
 
