@@ -1,0 +1,6 @@
+{
+    "uuid": "harbor@thomashaiden",
+    "name": "Harbor",
+    "description": "A dock in Toms Expressive Design: pinned and running apps, eleven styles, settings in the top bar.",
+    "shell-version": ["50"]
+}

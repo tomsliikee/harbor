@@ -1,0 +1,1 @@
+{"uuid": "harbor-driver@test", "name": "Harbor driver", "description": "Drives Harbor in the headless test shell.", "shell-version": ["50"]}
