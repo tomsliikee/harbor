@@ -63,3 +63,12 @@ export class ThemeController extends EventEmitter {
         return this._interface.get_string('color-scheme') === 'prefer-dark' ? 'dark' : 'light';
     }
 }
+
+// Swaps the colour class of a root actor; the stylesheet does the rest.
+export function setScheme(actor, key) {
+    for (const name of (actor.get_style_class_name() ?? '').split(' ')) {
+        if (name.startsWith('harbor-scheme-'))
+            actor.remove_style_class_name(name);
+    }
+    actor.add_style_class_name(`harbor-scheme-${key}`);
+}

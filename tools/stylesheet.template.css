@@ -1,3 +1,38 @@
-/* Structure only; colours are below the marker, once per colour and scheme. */
+/* Structure only above the marker; colours below it, written once per
+   colour style and scheme by tools/build-stylesheet.js. */
+
+.harbor-indicator {
+    spacing: 6px;
+}
+
+.harbor-attention {
+    color: #f5cc4a;
+}
+
+.harbor-peek {
+    width: 220px;
+    padding: 12px 14px;
+    spacing: 4px;
+    border-radius: 20px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16);
+}
+
+.harbor-peek-head {
+    spacing: 6px;
+    padding-bottom: 2px;
+}
+
+.harbor-peek-row {
+    spacing: 12px;
+}
 
 /* themed */
+
+.harbor-scheme.harbor-peek {
+    background-color: $surf;
+    color: $on;
+}
+
+.harbor-scheme .harbor-muted {
+    color: $onVar;
+}
