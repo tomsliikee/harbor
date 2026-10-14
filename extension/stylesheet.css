@@ -231,6 +231,12 @@
     border-radius: 16px;
 }
 
+.harbor-status-pill,
+.harbor-pebble-name {
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+
 .harbor-scheme-blue-light.harbor-peek {
     background-color: #edecfb;
     color: #191b25;

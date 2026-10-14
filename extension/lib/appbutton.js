@@ -107,7 +107,9 @@ class HarborAppButton extends St.Button {
             this._host.tooltip.hide();
             return;
         }
-        if (this._host.tooltipsHeld)
+        if (this._host.hoverLists && this.kind === 'app' && this.item.windows.length > 0)
+            return;
+        if (this._host.ownNames)
             return;
         this._host.tooltip.showSoon(this, this._host.side, this.tooltipText());
     }

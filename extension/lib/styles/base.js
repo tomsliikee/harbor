@@ -4,6 +4,7 @@
 // arranged and drawn.
 
 import Clutter from 'gi://Clutter';
+import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import {HarborAppButton} from '../appbutton.js';
@@ -19,12 +20,49 @@ export function box(vertical, styleClass = '', params = {}) {
     });
 }
 
+// A layer for what reaches beyond the dock: it asks for no room, so a
+// pill above an icon never makes the dock itself larger.
+const HarborOverlay = GObject.registerClass({GTypeName: 'HarborOverlay'},
+class HarborOverlay extends St.Widget {
+    _init() {
+        super._init({layout_manager: new Clutter.FixedLayout(), x_expand: true, y_expand: true});
+    }
+
+    vfunc_get_preferred_width() {
+        return [0, 0];
+    }
+
+    vfunc_get_preferred_height() {
+        return [0, 0];
+    }
+});
+
 export class Style {
     constructor(host) {
         this.host = host;
         this._buttons = new Map();
-        this.actor = this.buildRoot();
+        this.body = this.buildRoot();
+        this.overlay = new HarborOverlay();
+        this.actor = new St.Widget({layout_manager: new Clutter.BinLayout(), x_expand: true, y_expand: true});
+        this.actor.add_child(this.body);
+        this.actor.add_child(this.overlay);
+        // Floating things follow when the dock itself is laid out anew.
+        this.overlay.connect('notify::allocation', () => this.overlayMoved());
         this.host.theme.connectObject('changed', () => this.repaint(), this);
+    }
+
+    // Where a child of the body sits in the overlay's coordinates.
+    overlayMoved() {}
+
+    // Null while either is not laid out yet.
+    positionOf(actor) {
+        if (!actor.get_stage() || !this.overlay.get_stage())
+            return null;
+        const [ax, ay] = actor.get_transformed_position();
+        const [ox, oy] = this.overlay.get_transformed_position();
+        const [w, h] = actor.get_transformed_size();
+        const r = {x: ax - ox, y: ay - oy, width: w, height: h};
+        return Object.values(r).every(Number.isFinite) ? r : null;
     }
 
     // The style keeps room for itself at the edge even when windows could

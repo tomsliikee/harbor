@@ -35,7 +35,6 @@ export class Dock {
         this._shared = shared;
         this.theme = shared.theme;
         this.tooltip = new Tooltip(this.theme);
-        this.tooltipsHeld = false;
         this.barAlpha = 0.85;
         this.shown = true;
         this._revealed = false;
@@ -63,6 +62,11 @@ export class Dock {
         });
         this._container.connect('notify::hover', () => this._hoverChanged());
         this._container.connect('notify::allocation', () => this._queueReposition());
+        // The quiet handle's grip: the only thing left of a hidden dock.
+        this._handle = new St.Button({style_class: 'harbor-handle', reactive: true, visible: false, accessible_name: 'Show the dock'});
+        this._handle.connect('clicked', () => this.reveal());
+        Main.layoutManager.addChrome(this._handle);
+
         this._applySettings(shared.settings());
 
         Main.overview.connectObject(
@@ -99,11 +103,13 @@ export class Dock {
     _applySettings(settings, {fade = false} = {}) {
         this._settings = settings;
         this.side = settings.position;
+        this._shrink = 0;
         this.iconPx = ICON_PX[settings.iconSize];
         const old = this._style;
-        this._style = makeStyle(settings.style, this);
+        // The new style is made at the swap, so it never paints off stage.
         const swap = () => {
             old?.destroy();
+            this._style = makeStyle(this._settings.style, this);
             this._container.set_child(this._style.actor);
             this._track();
             if (this._snapshot)
@@ -205,8 +211,27 @@ export class Dock {
         this._openMenu(placeMenu(button, this.side, this.theme, {onOpen: Places.open, onEject: Places.eject}));
     }
 
-    showWindowList(button) {
-        this._openMenu(windowList(button, this.side, this.theme));
+    showWindowList(button, {hover = false} = {}) {
+        // One list at a time; resting on the same app keeps it.
+        if (hover && this._menu?.isOpen && this._menu.source === button)
+            return;
+        const menu = windowList(button, this.side, this.theme, {hover});
+        menu.source = button;
+        this._openMenu(menu);
+    }
+
+    get status() {
+        return this._shared.status;
+    }
+
+    // A style that names what the pointer rests on by itself.
+    get ownNames() {
+        return this._style?.ownNames ?? false;
+    }
+
+    // A style that opens lists on hover needs no tooltip over apps.
+    get hoverLists() {
+        return this._style?.hoverLists ?? false;
     }
 
     // A style that shows status loudly keeps it with the switch off.
@@ -251,7 +276,9 @@ export class Dock {
         this._openMenu(menu);
     }
 
-    hovered(_button, _hover) {}
+    hovered(button, hover) {
+        this._style?.hovered?.(button, hover);
+    }
 
     // Dragging
 
@@ -408,10 +435,43 @@ export class Dock {
         });
     }
 
-    _setShown(show, animated) {
-        if (show === this.shown)
+    _syncHandle() {
+        const wanted = Boolean(this._style?.handle) && !this.shown && !Main.overview.visible;
+        if (!wanted) {
+            this._handle.visible = false;
             return;
+        }
+        const monitor = this.monitor;
+        const [w, h] = this.vertical ? [6, 96] : [96, 6];
+        const gap = 8;
+        let x, y;
+        if (this.side === 'bottom') {
+            x = monitor.x + Math.round((monitor.width - w) / 2);
+            y = monitor.y + monitor.height - h - gap;
+        } else {
+            y = monitor.y + Math.round((monitor.height - h) / 2);
+            x = this.side === 'left' ? monitor.x + gap : monitor.x + monitor.width - w - gap;
+        }
+        this._handle.set_position(x, y);
+        this._handle.set_size(w, h);
+        this._handle.set_style(`background-color: ${this.theme.roles.outline}; border-radius: 3px;`);
+        this._handle.visible = true;
+    }
+
+    _setShown(show, animated) {
+        if (show === this.shown) {
+            // A shown dock sits at its place, whatever an earlier slide left.
+            const container = this._container;
+            if (show && !container.get_transition('translation-x') && !container.get_transition('translation-y')) {
+                container.translation_x = 0;
+                container.translation_y = 0;
+                container.visible = true;
+            }
+            this._syncHandle();
+            return;
+        }
         this.shown = show;
+        this._syncHandle();
         const container = this._container;
         const offset = this._edgeThickness();
         const hidden = {
@@ -496,7 +556,36 @@ export class Dock {
             x = this.side === 'left' ? monitor.x : monitor.x + monitor.width - w;
         }
         this._container.set_position(x, y);
+        if (this._fit(full ? 0 : this.vertical ? h : w, this.vertical ? monitor.height - top : monitor.width))
+            return;
         this._setupBarrier();
+    }
+
+    // A dock longer than its edge takes smaller icons, step by step, and
+    // grows back once there is room again. Returns true when it rebuilt.
+    _fit(length, room) {
+        const margin = 16;
+        const full = ICON_PX[this._settings.iconSize];
+        if (length > room - margin && this.iconPx > 24) {
+            this._shrink++;
+        } else if (this._shrink > 0 && length * (this.iconPx + 8) / this.iconPx < room - margin) {
+            this._shrink--;
+        } else {
+            return false;
+        }
+        const keep = this._shrink;
+        this.iconPx = full - 8 * keep;
+        this._rebuildStyle();
+        return true;
+    }
+
+    _rebuildStyle() {
+        this._style?.destroy();
+        this._style = makeStyle(this._settings.style, this);
+        this._container.set_child(this._style.actor);
+        if (this._snapshot)
+            this._style.update(this._snapshot);
+        this._queueReposition();
     }
 
     // A push against the edge brings a hidden dock back.
@@ -505,7 +594,16 @@ export class Dock {
         if (!this._style || this._settings.whenWindowClose === 'stay')
             return;
         const monitor = this.monitor;
-        const r = this._shownRect();
+        const shown = this._shownRect();
+        // The barrier stays on the monitor even if the dock is longer.
+        const top = Math.max(monitor.y, shown.y);
+        const left = Math.max(monitor.x, shown.x);
+        const r = {
+            x: left,
+            y: top,
+            width: Math.min(shown.x + shown.width, monitor.x + monitor.width) - left,
+            height: Math.min(shown.y + shown.height, monitor.y + monitor.height) - top,
+        };
         if (r.width <= 0 || r.height <= 0)
             return;
         let params;
@@ -573,5 +671,7 @@ export class Dock {
         this.tooltip.destroy();
         Main.layoutManager.removeChrome(this._container);
         this._container.destroy();
+        Main.layoutManager.removeChrome(this._handle);
+        this._handle.destroy();
     }
 }

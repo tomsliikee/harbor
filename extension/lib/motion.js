@@ -33,7 +33,7 @@ export function animate(actor, duration, onProgress, {mode = FADE, loop = false}
 // actor.ease() that jumps when animations are off.
 export function ease(actor, props, {duration = STATE_MS, mode = FADE, onComplete} = {}) {
     actor.remove_all_transitions();
-    if (!animationsOn()) {
+    if (!animationsOn() || duration <= 0) {
         Object.assign(actor, props);
         onComplete?.();
         return;

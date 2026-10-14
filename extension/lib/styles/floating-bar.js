@@ -28,12 +28,28 @@ export class FloatingBarStyle extends Style {
         return this.host.iconPx;
     }
 
+    get showAppsSize() {
+        return this.tile + this.px(8);
+    }
+
+    get showAppsRadius() {
+        return this.px(20);
+    }
+
+    get barRadius() {
+        return this.px(32);
+    }
+
+    get barPadding() {
+        return this.px(8);
+    }
+
     fill(button) {
         const side = this.host.side;
         const vertical = this.host.vertical;
         // The run line sits between the icon and the screen edge.
         const content = box(!vertical, 'harbor-item-box');
-        const size = button.kind === 'show-apps' ? this.tile + this.px(8) : this.tile;
+        const size = button.kind === 'show-apps' ? this.showAppsSize : this.tile;
         const tile = new St.Bin({
             style_class: 'harbor-tile-bin',
             width: size,
@@ -80,9 +96,9 @@ export class FloatingBarStyle extends Style {
     paintRoot() {
         const roles = this.host.theme.roles;
         const vertical = this.host.vertical;
-        const pad = this.px(8);
-        this.actor.set_style(
-            `${this.tileStyle(roles.highest, this.px(32), this.host.barAlpha)}` +
+        const pad = this.barPadding;
+        this.body.set_style(
+            `${this.tileStyle(roles.highest, this.barRadius, this.host.barAlpha)}` +
             `padding: ${pad}px; spacing: ${this.px(6)}px;`);
         this.apps.set_style(`spacing: ${this.px(6)}px;`);
         this.ends.set_style(`spacing: ${this.px(6)}px;`);
@@ -109,7 +125,7 @@ export class FloatingBarStyle extends Style {
                 button.placeIcon.gicon = item.gicon;
             button.tileBin.set_style(`${this.tileStyle(roles.high, this.px(16))} color: ${roles.onVar};`);
         } else {
-            button.tileBin.set_style(`${this.tileStyle(roles.tc, this.px(20))} color: ${roles.onTc};`);
+            button.tileBin.set_style(`${this.tileStyle(roles.tc, this.showAppsRadius)} color: ${roles.onTc};`);
         }
         this.host.paintStatus(button);
     }

@@ -3,6 +3,7 @@
 // list are built on it.
 
 import Clutter from 'gi://Clutter';
+import GLib from 'gi://GLib';
 import St from 'gi://St';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
@@ -47,13 +48,20 @@ export function rowGroup(rows, {outer = 'harbor-group-20'} = {}) {
 
 export class DockMenu {
     // side: the edge the dock sits on.
-    constructor(source, side, theme, {styleClass = 'harbor-menu'} = {}) {
+    // grab: false for a menu that opens on hover; it then closes once the
+    // pointer has left both the menu and its item.
+    constructor(source, side, theme, {styleClass = 'harbor-menu', grab = true} = {}) {
         this._theme = theme;
+        this._source = source;
+        this._grab = grab;
+        this._watch = 0;
         this.menu = new PopupMenu.PopupMenu(source, 0.5, SIDE_TOWARD_SCREEN[side] ?? St.Side.BOTTOM);
         this.menu.actor.add_style_class_name('harbor-menu-outer');
         this.menu.box.add_style_class_name(`harbor-popup ${styleClass}`);
-        this._manager = new PopupMenu.PopupMenuManager(source);
-        this._manager.addMenu(this.menu);
+        if (grab) {
+            this._manager = new PopupMenu.PopupMenuManager(source);
+            this._manager.addMenu(this.menu);
+        }
         Main.uiGroup.add_child(this.menu.actor);
         this.menu.actor.hide();
         this.content = column('harbor-menu-content');
@@ -68,6 +76,27 @@ export class DockMenu {
 
     open() {
         this.menu.open(true);
+        if (!this._grab)
+            this._watchPointer();
+    }
+
+    _watchPointer() {
+        let away = 0;
+        this._watch = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
+            const [x, y] = global.get_pointer();
+            const inside = actor => {
+                const [ax, ay] = actor.get_transformed_position();
+                const [w, h] = actor.get_transformed_size();
+                return x >= ax && x < ax + w && y >= ay && y < ay + h;
+            };
+            away = inside(this.menu.actor) || inside(this._source) ? 0 : away + 100;
+            if (away >= 300) {
+                this._watch = 0;
+                this.close();
+                return GLib.SOURCE_REMOVE;
+            }
+            return GLib.SOURCE_CONTINUE;
+        });
     }
 
     close() {
@@ -79,6 +108,9 @@ export class DockMenu {
     }
 
     destroy() {
+        if (this._watch)
+            GLib.source_remove(this._watch);
+        this._watch = 0;
         this._theme.disconnectObject(this);
         this.menu.destroy();
     }

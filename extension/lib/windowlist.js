@@ -13,9 +13,9 @@ import * as Words from './words.js';
 
 const NOTE = 'Middle-click the icon for a new window.';
 
-export function windowList(button, side, theme) {
+export function windowList(button, side, theme, {hover = false} = {}) {
     const entry = button.item;
-    const menu = new DockMenu(button, side, theme, {styleClass: 'harbor-menu harbor-window-list'});
+    const menu = new DockMenu(button, side, theme, {styleClass: 'harbor-menu harbor-window-list', grab: !hover});
     const windows = windowsOf(entry.app);
     const focus = global.display.focus_window;
 
