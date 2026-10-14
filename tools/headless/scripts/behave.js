@@ -80,6 +80,14 @@ export default async function ({extension, shot, sleep, note, moveTo, move, clic
     await shot('behave-see-through');
     set('seeThrough', false);
 
+    // Always moving turns the focus shape.
+    set('alwaysMoving', true);
+    await sleep(400);
+    note(`always moving: focus shape turns=${Boolean(dock()._style.glider._spin)}`);
+    set('alwaysMoving', false);
+    await sleep(200);
+    note(`always moving off: turns=${Boolean(dock()._style.glider._spin)}`);
+
     // Minimising flies into the icon.
     await sleep(500);
     const [ok, rect] = editor.get_icon_geometry();

@@ -194,7 +194,9 @@ export class ExpressiveRailStyle extends Style {
         if (unfold) {
             this.pill.x = Math.round(from);
             this.pill.width = height;
-            spring(this.pill, {width: natural, x: Math.round(to)}, {spring: SPRINGS.spread});
+            // Measured again at the end: a pill that unfolds before its
+            // words are laid out would stay too narrow.
+            spring(this.pill, {width: natural, x: Math.round(to)}, {spring: SPRINGS.spread, onDone: () => this._placePill()});
         } else {
             this.pill.x = Math.round(to);
             this.pill.width = natural;
