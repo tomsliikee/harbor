@@ -260,7 +260,7 @@ export class Dock {
 
     // Keeps the dock up while a menu of it is open.
     _openMenu(menu) {
-        this._menu?.destroy();
+        this._dropMenu();
         this._menu = menu;
         this.tooltip.hide();
         menu.onClosed = () => {
@@ -278,8 +278,14 @@ export class Dock {
         this._evaluate();
     }
 
-    holdOpen(menu) {
-        this._openMenu(menu);
+    // Closing a menu reports that it closed; the old one must not answer.
+    _dropMenu() {
+        const old = this._menu;
+        this._menu = null;
+        if (old) {
+            old.onClosed = null;
+            old.destroy();
+        }
     }
 
     hovered(button, hover) {
@@ -316,7 +322,39 @@ export class Dock {
             return DND.DragMotionResult.NO_DROP;
         this._dropIndex = this._indexAt(x, y);
         this._showPlaceholder(this._dropIndex);
+        this._watchDrag();
         return DND.DragMotionResult.MOVE_DROP;
+    }
+
+    // DND only tells a target while the pointer is over it, so the dock
+    // watches the drag to close the gap once the pointer moves away.
+    _watchDrag() {
+        if (this._dragWatch)
+            return;
+        this._dragWatch = {
+            // DND walks its list of monitors while calling them, so this
+            // one is taken off only after the drag has ended.
+            dragMotion: event => {
+                if (!this._contains(event.x, event.y, 8))
+                    this._closeGap();
+                return DND.DragMotionResult.CONTINUE;
+            },
+            dragDrop: () => {
+                this._closeGap();
+                GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                    this._clearDragWatch();
+                    return GLib.SOURCE_REMOVE;
+                });
+                return DND.DragDropResult.CONTINUE;
+            },
+        };
+        DND.addDragMonitor(this._dragWatch);
+    }
+
+    _clearDragWatch() {
+        if (this._dragWatch)
+            DND.removeDragMonitor(this._dragWatch);
+        this._dragWatch = null;
     }
 
     acceptDrop(source) {
@@ -325,7 +363,7 @@ export class Dock {
             return false;
         const id = app.get_id();
         const index = this._dropIndex ?? -1;
-        this._clearPlaceholder();
+        this._closeGap();
         const laters = global.compositor.get_laters();
         laters.add(Meta.LaterType.BEFORE_REDRAW, () => {
             const pinnedIds = this._snapshot.apps.filter(entry => entry.pinned).map(entry => entry.id);
@@ -368,9 +406,18 @@ export class Dock {
     }
 
     _clearPlaceholder() {
+        this._closeGap();
+        this._clearDragWatch();
+    }
+
+    _closeGap() {
         this._dropIndex = null;
-        for (const button of this._style.appButtons())
-            ease(button, {translation_x: 0, translation_y: 0}, {duration: 120});
+        if (!this._style)
+            return;
+        for (const button of this._style.appButtons()) {
+            if (button.translation_x !== 0 || button.translation_y !== 0)
+                ease(button, {translation_x: 0, translation_y: 0}, {duration: 120});
+        }
     }
 
     // Showing and hiding
@@ -398,10 +445,16 @@ export class Dock {
         this._evaluate();
     }
 
+    // The rail keeps its room, so it acts as if set to Stay unless hidden.
+    _mode() {
+        const mode = this._settings.whenWindowClose;
+        return this._style?.reservesSpace && mode !== 'hide' ? 'stay' : mode;
+    }
+
     _evaluate({animated = true} = {}) {
         if (!this._style)
             return;
-        const mode = this._settings.whenWindowClose;
+        const mode = this._mode();
         const windows = this._windowsHere();
         const overlap = anyOverlaps(this._shownRect(), windows);
         const needed = Main.overview.visible || this._hovering || this._revealed || this._dragging || this._menu !== null;
@@ -442,7 +495,7 @@ export class Dock {
     }
 
     _syncHandle() {
-        const wanted = Boolean(this._style?.handle) && !this.shown && !Main.overview.visible;
+        const wanted = Boolean(this._style?.handle) && !this.shown && !Main.overview.visible && this._allowedVisible();
         if (!wanted) {
             this._handle.visible = false;
             return;
@@ -464,6 +517,13 @@ export class Dock {
         this._handle.visible = true;
     }
 
+    // GNOME hides the dock under a fullscreen window (trackFullscreen); the
+    // dock never shows itself against that.
+    _allowedVisible() {
+        const monitor = this.monitor;
+        return !(global.window_group.visible && monitor?.inFullscreen);
+    }
+
     _setShown(show, animated) {
         if (show === this.shown) {
             // A shown dock sits at its place, whatever an earlier slide left.
@@ -471,7 +531,7 @@ export class Dock {
             if (show && !container.get_transition('translation-x') && !container.get_transition('translation-y')) {
                 container.translation_x = 0;
                 container.translation_y = 0;
-                container.visible = true;
+                container.visible = this._allowedVisible();
             }
             this._syncHandle();
             return;
@@ -486,7 +546,7 @@ export class Dock {
             right: {translation_x: offset, translation_y: 0},
         }[this.side];
         if (show) {
-            container.visible = true;
+            container.visible = this._allowedVisible();
             ease(container, {translation_x: 0, translation_y: 0, opacity: 255}, {duration: animated ? STATE_MS : 0});
         } else {
             this.tooltip.hide();
@@ -596,9 +656,11 @@ export class Dock {
 
     // A push against the edge brings a hidden dock back.
     _setupBarrier() {
-        this._removeBarrier();
-        if (!this._style || this._settings.whenWindowClose === 'stay')
+        if (!this._style || this._mode() === 'stay') {
+            this._removeBarrier();
+            this._barrierKey = null;
             return;
+        }
         const monitor = this.monitor;
         const shown = this._shownRect();
         // The barrier stays on the monitor even if the dock is longer.
@@ -610,8 +672,11 @@ export class Dock {
             width: Math.min(shown.x + shown.width, monitor.x + monitor.width) - left,
             height: Math.min(shown.y + shown.height, monitor.y + monitor.height) - top,
         };
-        if (r.width <= 0 || r.height <= 0)
+        if (r.width <= 0 || r.height <= 0) {
+            this._removeBarrier();
+            this._barrierKey = null;
             return;
+        }
         let params;
         if (this.side === 'bottom') {
             const edge = monitor.y + monitor.height;
@@ -622,6 +687,11 @@ export class Dock {
             const edge = monitor.x + monitor.width;
             params = {x1: edge, x2: edge, y1: r.y, y2: r.y + r.height, directions: Meta.BarrierDirection.NEGATIVE_X};
         }
+        const key = JSON.stringify(params);
+        if (key === this._barrierKey && this._barrier)
+            return;
+        this._removeBarrier();
+        this._barrierKey = key;
         try {
             this._barrier = new Meta.Barrier({backend: global.backend, ...params});
             this._pressure = new Layout.PressureBarrier(PRESSURE_THRESHOLD, PRESSURE_TIMEOUT,
@@ -646,9 +716,9 @@ export class Dock {
     }
 
     // Brings the dock back until the pointer has been away from it a moment.
-    reveal() {
+    reveal({animated = true} = {}) {
         this._revealed = true;
-        this._evaluate();
+        this._evaluate({animated});
         if (this._leave)
             GLib.source_remove(this._leave);
         this._leave = GLib.timeout_add(GLib.PRIORITY_DEFAULT, LEAVE_MS * 4, () => {
@@ -666,8 +736,8 @@ export class Dock {
             GLib.source_remove(this._leave);
         this._leave = 0;
         this._removeBarrier();
-        this._menu?.destroy();
-        this._menu = null;
+        this._dropMenu();
+        this._clearDragWatch();
         Main.overview.disconnectObject(this);
         Main.layoutManager.disconnectObject(this);
         global.display.disconnectObject(this);

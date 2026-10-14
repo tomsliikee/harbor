@@ -116,7 +116,7 @@ export default class HarborExtension extends Extension {
         Actions.primary(entry, {onList: () => {
             const button = dock?.buttonFor(entry.id);
             if (button) {
-                dock.reveal();
+                dock.reveal({animated: false});
                 dock.showWindowList(button);
             } else {
                 Actions.cycle(entry, 1);

@@ -5,6 +5,7 @@
 import Clutter from 'gi://Clutter';
 import St from 'gi://St';
 
+import * as Actions from '../actions.js';
 import {box} from './base.js';
 import {text} from '../text.js';
 import {FloatingBarStyle} from './floating-bar.js';
@@ -29,11 +30,15 @@ export class LoudTileStyle extends FloatingBarStyle {
         inner.add_child(words);
         this.loud.set_child(inner);
         this.loud.connect('clicked', () => {
-            const button = this._focusedButton;
-            if (button)
-                button.emit('clicked', Clutter.BUTTON_PRIMARY);
-            else
+            const item = this._focusedButton?.item;
+            if (!item) {
                 this.host.showApps();
+                return;
+            }
+            // The app's own button is out of the bar, so the list opens
+            // from the tile.
+            this.loud.item = item;
+            Actions.primary(item, {onList: () => this.host.showWindowList(this.loud)});
         });
         this.loudSeparator = new St.Widget({style_class: 'harbor-separator'});
         root.insert_child_at_index(this.loud, 0);

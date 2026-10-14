@@ -84,6 +84,7 @@ export class PebblesStyle extends Style {
     paint(button) {
         const roles = this.host.theme.roles;
         if (button.kind === 'app') {
+            button.tileBin.set_style('');
             const item = button.item;
             const attention = this.host.attentionFor(button);
             button.shape.setColor(attention ? this.host.theme.warn : roles[item.tone]);

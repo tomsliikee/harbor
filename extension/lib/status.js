@@ -63,10 +63,13 @@ export class Status extends EventEmitter {
         this._players = new Map();
         this._bus = Gio.DBus.session;
         this._launcher = this._bus.signal_subscribe(null, 'com.canonical.Unity.LauncherEntry', 'Update',
-            null, null, Gio.DBusSignalFlags.NONE, (_c, _sender, _path, _iface, _signal, params) => this._update(params));
+            null, null, Gio.DBusSignalFlags.NONE, (_c, sender, _path, _iface, _signal, params) => this._update(sender, params));
         this._owners = this._bus.signal_subscribe('org.freedesktop.DBus', 'org.freedesktop.DBus', 'NameOwnerChanged',
             '/org/freedesktop/DBus', null, Gio.DBusSignalFlags.NONE, (_c, _s, _p, _i, _sig, params) => {
                 const [name, , owner] = params.deep_unpack();
+                // An app that quits takes its counts with it.
+                if (!owner && name.startsWith(':'))
+                    this._dropSender(name);
                 if (!name.startsWith(MPRIS_PREFIX))
                     return;
                 if (owner)
@@ -95,12 +98,25 @@ export class Status extends EventEmitter {
         this.disconnectAll();
     }
 
-    _update(params) {
+    _dropSender(sender) {
+        let changed = false;
+        for (const [id, entry] of this._entries) {
+            if (entry.sender === sender) {
+                this._entries.delete(id);
+                changed = true;
+            }
+        }
+        if (changed)
+            this.emit('changed');
+    }
+
+    _update(sender, params) {
         const [uri, properties] = params.deep_unpack();
         const id = appIdFromUri(uri);
         if (!id)
             return;
         const entry = this._entries.get(id) ?? {count: 0, countVisible: false, progress: 0, progressVisible: false, urgent: false};
+        entry.sender = sender;
         for (const [key, value] of Object.entries(properties)) {
             const v = value.deep_unpack();
             if (key === 'count')
@@ -262,9 +278,10 @@ export class Status extends EventEmitter {
             icon.scale_x = shrink;
             icon.scale_y = shrink;
         }
-        if (this.attention(button.item, dock)) {
-            const style = button.tileBin.get_style() ?? '';
+        // The halo follows a rounded tile; a style that paints a shape
+        // shows attention in the shape's colour instead.
+        const style = button.tileBin.get_style() ?? '';
+        if (this.attention(button.item, dock) && style.includes('border-radius') && !style.includes('box-shadow'))
             button.tileBin.set_style(`${style} box-shadow: 0 0 0 4px ${rgba(warn[this._theme.scheme], 0.33)}; color: ${warn.on};`);
-        }
     }
 }

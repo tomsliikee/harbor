@@ -89,6 +89,7 @@ export class ShapeStageStyle extends Style {
         const roles = this.host.theme.roles;
         const item = button.item;
         if (button.kind === 'app') {
+            button.tileBin.set_style('');
             const windows = item.windows.length;
             const attention = this.host.attentionFor(button);
             const color = attention ? this.host.theme.warn : item.focused ? roles.pc : windows > 0 ? roles.sc : roles.bright;

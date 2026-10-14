@@ -108,6 +108,9 @@ export class DockMenu {
     }
 
     destroy() {
+        if (this._destroyed)
+            return;
+        this._destroyed = true;
         if (this._watch)
             GLib.source_remove(this._watch);
         this._watch = 0;
