@@ -114,8 +114,10 @@ With **Symbolic icons** off, the apps' own colour icons rest on the same tiles. 
 | **When a window comes close** | Stay, **Make room**, Hide | **Stay** keeps the dock and its room; windows maximise up to it. **Make room** steps aside while a window of the app in front overlaps it. **Hide** stays away until you need it. |
 | **Symbolic icons** | **On**, Off | Flat symbols in the dock's colours instead of the apps' own icons (see [Symbols](#symbols)). |
 | **Ink focus** | **On**, Off | The focused app is black, in dark mode white; off, it takes the primary colour. |
-| **Light dock** | On, **Off** | The dock, its menus and tooltips stay light when the desktop is dark. The top bar menu still follows the desktop. |
-| **See-through** | On, **Off** | The bars at **78 %** opacity, so the wallpaper shows through. |
+| **Dock colours** | **Auto**, Light, Dark | The scheme of the dock, its menus and tooltips. **Auto** follows the desktop; **Light** and **Dark** hold it whatever the desktop does. The top bar menu still follows the desktop. A saved `"lightDock": true` turns into **Light**. |
+| **See-through** | On, **Off** | The bars at **78 %** opacity, so the wallpaper shows through. Hidden while the dock is blurred. |
+| **Blur** | **On**, Off | Only shown while **Blur My Shell** is enabled: it blurs what lies behind the bars, with the pipeline it has for **Dash to Dock** (see [Blur My Shell](#blur-my-shell)). The bars are then at **50 %**. |
+| **Blur like Blur My Shell** | On, **Off** | Only with **Blur**: the bars take the opacity Blur My Shell gives windows instead of **50 %**, followed live. |
 | **Expressive motion** | **On**, Off | Springs for appearing, going and every state; off, the dock slides as calmly as before. |
 | **Speed of motion** | Quick, **Normal**, Slow | About **350**, **500** or **700 ms** for the dock to appear; all motion follows. |
 | **Always moving** | On, **Off** | Shapes turn slowly while nothing happens. Rests on battery and while the dock is away. |
@@ -185,6 +187,12 @@ These are not settings, on purpose. If one of them is wrong for you, the fix bel
 
 ![Progress ring, counts, attention, music, and the window list](readmestuff/status.png)
 
+### Blur My Shell
+
+Harbor paints no blur of its own. While **Blur My Shell** is enabled, Harbor borrows its pipeline for each bar of the chosen style, with the bar's rounded corners, also while a bar spreads from its pill. The pipeline is the one Blur My Shell has for **Dash to Dock**, whose place Harbor takes: with its *auto mode* on, the light pipeline under a light dock and the dark one under a dark dock, so **Dock colours** switches it too. Styles without a bar (**Grouped block**, **Pebbles**, **Quiet handle**, **Loud tile**) get no blur.
+
+Harbor imports Blur My Shell's modules from its folder at run time. They are not an API: if they change shape, the blur is left out, a line goes to the journal, and the dock carries on unblurred. Without Blur My Shell nothing of this is made.
+
 ---
 
 ## Requirements
@@ -195,7 +203,7 @@ These are not settings, on purpose. If one of them is wrong for you, the fix bel
 | **GNOME Shell 49 and older** | Any | ***Not supported.*** `metadata.json` names version 50 only; older shells refuse to load it. |
 | **Other desktops** (KDE Plasma, Xfce, macOS, Windows) | — | ***Not applicable.*** Harbor is a GNOME Shell extension. |
 
-Nothing else is needed: no other extension, no package, no network. **Google Sans Flex** is bundled and installed for your user if it is missing.
+Nothing else is needed: no other extension, no package, no network. **Blur My Shell** is optional (see [Blur My Shell](#blur-my-shell)). **Google Sans Flex** is bundled and installed for your user if it is missing.
 
 ---
 
@@ -206,6 +214,7 @@ Nothing else is needed: no other extension, no package, no network. **Google San
 | **Settings** | **`~/.config/harbor/settings.json`** | Every choice from the menu, and the symbols you picked. Watched, so an edit by hand takes effect at once. |
 | **Font** | **`~/.local/share/fonts/GoogleSansFlex.woff2`** | Copied by `install.sh` only if no **Google Sans Flex** is installed. |
 | **Screen colour beside the handle** | Memory only | While the handle shows, the shell's own colour picker reads **5 pixels** beside it every **1.5 s** to choose white or black. Nothing is stored or sent. |
+| **Blur My Shell's settings** | Its own schemas, read only | The pipeline for Dash to Dock and the opacity for windows, while it is enabled. |
 | **Unread counts, progress, music** | Session bus | Signals that apps send anyway (see [Where Status Comes From](#where-status-comes-from)). |
 
 Harbor makes no network requests and sends no notifications.
@@ -284,6 +293,7 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 | **Stylesheet** | `gjs -m tools/build-stylesheet.js` |
 | **Symbols** | `gjs -m tools/build-symbols.js` fetches the list in **`tools/symbols.list.js`** from **jsDelivr** at fixed versions and writes **`extension/symbols`** |
 | **Headless shell** | `tools/headless/run.sh <script> [seconds]` with a script from **`tools/headless/scripts`**; screenshots land in **`$TMPDIR/harbor-headless`** |
+| **Blur My Shell behind the bars** | `HARBOR_WITH="blur-my-shell@aunetx=$HOME/.local/share/gnome-shell/extensions/blur-my-shell@aunetx" tools/headless/run.sh blur` |
 | **Two monitors** | `HARBOR_MONITORS=2 tools/headless/run.sh lifecycle` |
 | **Beside other extensions** | `HARBOR_WITH="<uuid>=<path to its extension folder>" tools/headless/run.sh lifecycle` |
 
@@ -293,9 +303,10 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 
 | Area | Evidence |
 | :--- | :--- |
-| **Settings, shapes, springs, words, layout rules, matching symbols to app ids** | ***Tested:*** 63 unit tests, 26 real app ids among them. |
+| **Settings, shapes, springs, words, layout rules, matching symbols to app ids** | ***Tested:*** 66 unit tests, 26 real app ids among them. |
 | **Symbols on tiles in every style, the picker, choosing, Automatic, Symbolic icons off, symbols in the top bar menu** | ***Tested*** in the headless shell (`styles`, `symbols` scripts), light and dark. |
-| **Round tiles centred in the bar, ink focus, light dock on a dark desktop, long handle, a hovered tile lifting as one, the handle's colour** | ***Tested*** in the headless shell (`styles` at every edge, `look` script light and dark: white handle over a dark window, black over a light one). |
+| **Blur My Shell behind the bars: one blur per bar with its corners, 50 % or Blur My Shell's window opacity followed live, light and dark pipeline after Dock colours, Blur off, Blur My Shell switched off and on, the menu rows** | ***Tested*** in the headless shell (`blur` script, light and dark; `lifecycle` with two monitors, `regress`, `menu` beside Blur My Shell). The blur itself is only visible over a window and was not looked at in the real session. |
+| **Round tiles centred in the bar, ink focus, Dock colours Light and Dark on either desktop, long handle, a hovered tile lifting as one, the handle's colour** | ***Tested*** in the headless shell (`styles` at every edge, `look` script light and dark: white handle over a dark window, black over a light one). |
 | **Appearing and going in every style, out of and into the handle, focus gliding, hover, start, attention, counts** | ***Tested*** in the headless shell, frame by frame in slow motion (`motion` script, also with `HARBOR_HANDLES=on`, `HARBOR_LONG=on`, `HARBOR_SIDE=left`). |
 | **Make room for the app in front, edge, handle per style, see-through, minimising into the icon** | ***Tested*** in the headless shell (`behave` script). |
 | **All ten styles at three edges, light and dark** | ***Tested*** in the headless shell by screenshot. |
@@ -317,7 +328,8 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 - **The dock opens out of its handle and closes into it:** a twin of the handle travels between the handle's place and the dock's pill, so handle and dock read as one thing; the bars and items keep their own spring motion after the hand-over.
 - **A tile lifts as one:** shape and symbol move together on hover and while an app starts; only the symbol moving looked loose.
 - **The handle picks its colour from the screen:** white wherever it can be seen, black on white or nearly white ground (relative luminance above **0.6**), read with the shell's own colour picker.
-- **Light dock is a view of the theme, not a second theme:** the dock reads the same colour style with the scheme held at light; the top bar menu keeps following the desktop.
+- **Dock colours is a view of the theme, not a second theme:** the dock reads the same colour style with the scheme held at light or dark; the top bar menu keeps following the desktop.
+- **Blur borrowed from Blur My Shell, not painted:** its pipelines (liquid glass among them) are its own shader code; Harbor takes the one set for Dash to Dock and sizes Blur My Shell's layer itself before each frame, so a spreading bar never waits a frame for its blur.
 - **Symbols shipped as files, nothing at run time:** Brand logos come from **Simple Icons** (CC0), the rest from **Material Symbols** (Apache 2.0); the build script removes their fills so the shell paints them in the tile's colour.
 - **Bars painted behind the buttons:** A bar is drawn by a stand-in on a layer below the icons, so it can spread from a pill and a focus shape can glide between it and the icons.
 - **Resting on the edge instead of a push:** A push of 100 px was hard on a touchpad; 200 ms on the last row is as hard to set off by passing by.

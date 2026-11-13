@@ -14,7 +14,7 @@ import {HarborSwitch} from './controls/switch.js';
 import {appTile, paintTile} from './icon.js';
 import {STATE_MS, ease} from './motion.js';
 import {COLOURS} from './palettes.js';
-import {ICON_SIZES, MOTION_SPEEDS, POSITIONS, WHEN_WINDOW_CLOSE} from './settings.js';
+import {DOCK_SCHEMES, ICON_SIZES, MOTION_SPEEDS, POSITIONS, WHEN_WINDOW_CLOSE} from './settings.js';
 import {text} from './text.js';
 import * as Words from './words.js';
 
@@ -23,12 +23,12 @@ const CAPTIONS = {
     small: 'Small', medium: 'Medium', large: 'Large', huge: 'Huge',
     'stay': 'Stay', 'make-room': 'Make room', 'hide': 'Hide',
     quick: 'Quick', normal: 'Normal', slow: 'Slow',
+    auto: 'Auto', light: 'Light', dark: 'Dark',
 };
 // [key, title, note]; a key of "handles" means the chosen style's handle.
 const LOOK_SWITCHES = [
     ['symbolicIcons', 'Symbolic icons', 'Flat symbols in the colours of the dock. Right-click an app to choose its symbol.'],
     ['inkFocus', 'Ink focus', 'The focused app is black, in dark mode white. Off, it takes the colour of the style.'],
-    ['lightDock', 'Light dock', 'The dock stays light when the desktop is dark.'],
     ['seeThrough', 'See-through', 'Lets the wallpaper show through the dock.'],
     ['expressiveMotion', 'Expressive motion', 'The dock rises and spreads out, icons pop up, shapes glide and morph.'],
 ];
@@ -162,6 +162,7 @@ export class Popup {
         };
         this._segmented = {};
         this._switches = {};
+        this._rows = {};
 
         this._styleList = new HarborStyleList({theme: this._theme, onPick: style => set('style', style)});
         block('Dock style', this._styleList);
@@ -177,7 +178,15 @@ export class Popup {
         segmented('position', POSITIONS, 'Where the dock sits');
         segmented('iconSize', ICON_SIZES, 'Icon size');
         segmented('whenWindowClose', WHEN_WINDOW_CLOSE, 'When a window comes close');
+        segmented('dockScheme', DOCK_SCHEMES, 'Dock colours');
         switches(LOOK_SWITCHES);
+        // Only there while Blur My Shell is enabled.
+        this._blurRows = column('harbor-switches');
+        this._blurRows.add_child(this._switchRow('blur', 'Blur', 'Blur My Shell blurs what lies behind the dock, in its own style.'));
+        this._blurFollowRow = this._switchRow('blurFollow', 'Blur like Blur My Shell', 'The dock takes the opacity Blur My Shell gives windows. Off, it is half see-through.');
+        this._blurRows.add_child(this._blurFollowRow);
+        this._blurRows.visible = false;
+        tile.add_child(this._blurRows);
         this._motionBlock = segmented('motionSpeed', MOTION_SPEEDS, 'Speed of motion');
         this._motionSwitches = switches(MOTION_SWITCHES);
         switches(MORE_SWITCHES);
@@ -219,6 +228,7 @@ export class Popup {
                 this._settings.set(key, !settings[key]);
         });
         this._switches[key] = control;
+        this._rows[key] = row;
         return row;
     }
 
@@ -244,6 +254,19 @@ export class Popup {
         this._longRow.visible = settings.handles[settings.style];
         this._motionBlock.visible = settings.expressiveMotion;
         this._motionSwitches.visible = settings.expressiveMotion;
+        this._blurFollowRow.visible = settings.blur;
+        this._syncSeeThrough(settings);
+    }
+
+    setBlurAvailable(on) {
+        this._blurAvailable = on;
+        this._blurRows.visible = on;
+        this._syncSeeThrough(this._settings.current);
+    }
+
+    // Over a blur the bars take their alpha from it, so See-through steps aside.
+    _syncSeeThrough(settings) {
+        this._rows.seeThrough.visible = !(this._blurAvailable && settings.blur);
     }
 
     setDashToDock(on) {

@@ -13,6 +13,7 @@ import GObject from 'gi://GObject';
 import St from 'gi://St';
 
 import {HarborAppButton} from '../appbutton.js';
+import {BarBlur} from '../blur.js';
 import {SPRINGS, expressive, spring} from '../choreo.js';
 import {GLYPH_SHARE, appGlyph, paintGlyph} from '../icon.js';
 import {mix, rgba, warn} from '../palettes.js';
@@ -71,6 +72,8 @@ export class Style {
         this.host = host;
         this._buttons = new Map();
         this._bars = new Map();
+        // Blur My Shell's blur behind each bar, while the dock asks for it.
+        this._blurs = new Map();
         this._built = false;
         this.body = this.buildRoot();
         this.backdrop = new HarborOverlay();
@@ -222,6 +225,27 @@ export class Style {
         this.paintRoot();
         for (const button of this._buttons.values())
             this.paint(button);
+        this.syncBlur();
+    }
+
+    // A blur behind every bar while the dock is blurred, none otherwise;
+    // the pipeline follows the dock's scheme.
+    syncBlur() {
+        const on = this.host.blurred;
+        for (const ghost of this._bars.values()) {
+            const blur = this._blurs.get(ghost);
+            if (on && !blur)
+                this._blurs.set(ghost, new BarBlur(this.host.blur, ghost, this.host.theme.scheme));
+            else if (!on && blur)
+                this._dropBlur(ghost);
+            else if (blur)
+                blur.setPipeline(this.host.blur.pipelineFor(this.host.theme.scheme));
+        }
+    }
+
+    _dropBlur(ghost) {
+        this._blurs.get(ghost)?.destroy();
+        this._blurs.delete(ghost);
     }
 
     // A new app grows in: its neighbours move apart, then it pops up.
@@ -281,6 +305,8 @@ export class Style {
 
     destroy() {
         this.host.theme.disconnectObject(this);
+        for (const ghost of [...this._blurs.keys()])
+            this._dropBlur(ghost);
         // A button can be out of the body (the loud tile holds the focused
         // app's place), so each goes on its own.
         for (const button of this._buttons.values())
@@ -409,6 +435,8 @@ export class Style {
             ghost.spread = this.host.revealShare;
             this._bars.set(part, ghost);
             this.backdrop.insert_child_at_index(ghost, 0);
+            if (this.host.blurred)
+                this._blurs.set(ghost, new BarBlur(this.host.blur, ghost, this.host.theme.scheme));
             part.connect('notify::allocation', () => this._placeBar(ghost));
             part.connect('notify::visible', () => this._placeBar(ghost));
         }
@@ -422,8 +450,10 @@ export class Style {
     _placeBar(ghost) {
         const r = rectIn(ghost.part, this.actor);
         ghost.visible = Boolean(r) && ghost.part.visible && r.width > 0 && r.height > 0;
-        if (!ghost.visible)
+        if (!ghost.visible) {
+            this._blurs.get(ghost)?.follow();
             return;
+        }
         ghost.rect = r;
         this._spreadBar(ghost);
     }
@@ -453,6 +483,7 @@ export class Style {
             ghost.rounded = radius;
             ghost.set_style(`${ghost.css} border-radius: ${radius}px;`);
         }
+        this._blurs.get(ghost)?.follow();
     }
 
     setSpread(ghost, share) {

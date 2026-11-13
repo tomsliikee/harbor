@@ -1,4 +1,4 @@
-// Look switches: ink focus, a light dock on a dark desktop, the long
+// Look switches: ink focus, the dock's own scheme (light, dark, auto), the long
 // handle and its colour, and a hovered tile lifting as one with its
 // focus shape. Meant for HARBOR_SCHEME=dark; light shows the black handle.
 export default async function ({extension, shot, sleep, note, moveTo, launch, set}) {
@@ -23,11 +23,15 @@ export default async function ({extension, shot, sleep, note, moveTo, launch, se
     await sleep(800);
     note(`ink off: focus=${focus()} primary=${dock().theme.roles.primary}`);
     set('inkFocus', true);
-    set('lightDock', true);
+    set('dockScheme', 'light');
     await sleep(1200);
     note(`light dock: scheme=${dock().theme.scheme} bar=${style().barColor} focus=${focus()} desktop=${extension._theme.scheme}`);
     await shot('look-light-dock');
-    set('lightDock', false);
+    set('dockScheme', 'dark');
+    await sleep(1200);
+    note(`dark dock: scheme=${dock().theme.scheme} bar=${style().barColor} desktop=${extension._theme.scheme}`);
+    await shot('look-dark-dock');
+    set('dockScheme', 'auto');
     await sleep(800);
     note(`back: scheme=${dock().theme.scheme}`);
 

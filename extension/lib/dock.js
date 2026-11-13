@@ -39,8 +39,10 @@ Gio._promisify(Shell.Screenshot.prototype, 'pick_color');
 const LEAVE_MS = 500;
 // Sizes and paddings are drawn for this icon size and scaled from it.
 const BASE_ICON = 48;
-// How opaque the bars are with "See-through" on.
+// How opaque the bars are with "See-through" on, and over Blur My Shell's
+// blur unless they follow its opacity for windows.
 const SEE_THROUGH = 0.78;
+const BLURRED = 0.5;
 
 // Appearing, at normal speed: the handle rises and swells into the dock's
 // pill, the bars spread, then the items pop up from the middle outwards;
@@ -119,6 +121,7 @@ export class Dock {
         Main.layoutManager.addChrome(this._edge);
 
         this._shared.power?.connectObject('changed', () => this._syncAmbient(), this);
+        this._shared.blur?.connectObject('changed', () => this._syncBlur(), this);
         this._applySettings(shared.settings());
 
         Main.overview.connectObject(
@@ -155,10 +158,34 @@ export class Dock {
                 this.reveal();
             return;
         }
-        this._setBarAlpha(settings.seeThrough ? SEE_THROUGH : 1);
+        this._syncBlur();
         this.update(this._snapshot);
         this._syncHandle();
         this._syncAmbient();
+    }
+
+    // Blur My Shell borrowed for the bars (see lib/blur.js), or null.
+    get blur() {
+        return this._shared.blur ?? null;
+    }
+
+    // Whether the bars have Blur My Shell's blur behind them.
+    get blurred() {
+        return Boolean(this._settings?.blur && this.blur?.available);
+    }
+
+    _barAlphaFor(settings) {
+        if (settings.blur && this.blur?.available)
+            return settings.blurFollow ? this.blur.opacity : BLURRED;
+        return settings.seeThrough ? SEE_THROUGH : 1;
+    }
+
+    // Blur on or off, or Blur My Shell changed: the bars and their alpha follow.
+    _syncBlur() {
+        if (!this._settings)
+            return;
+        this._setBarAlpha(this._barAlphaFor(this._settings));
+        this._style?.syncBlur();
     }
 
     _setBarAlpha(alpha) {
@@ -173,7 +200,7 @@ export class Dock {
         this.side = settings.position;
         this._shrink = 0;
         this.iconPx = ICON_PX[settings.iconSize];
-        this.barAlpha = settings.seeThrough ? SEE_THROUGH : 1;
+        this.barAlpha = this._barAlphaFor(settings);
         const old = this._style;
         // The new style is made at the swap, so it never paints off stage.
         const swap = () => {
@@ -1193,6 +1220,7 @@ export class Dock {
         this._clearTimers();
         this._stopChoreo();
         this._shared.power?.disconnectObject(this);
+        this._shared.blur?.disconnectObject(this);
         this._dropMenu();
         this._clearDragWatch();
         Main.overview.disconnectObject(this);

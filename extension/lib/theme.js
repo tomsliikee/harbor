@@ -64,27 +64,27 @@ export class ThemeController extends EventEmitter {
     }
 }
 
-// The theme as the dock sees it: the same colour style, but kept light
-// with "Light dock" while the desktop is dark. Same API as the controller.
+// The theme as the dock sees it: the same colour style, in the scheme the
+// dock was given ("auto", "light" or "dark"). Same API as the controller.
 export class SchemeView extends EventEmitter {
-    constructor(theme, forceLight = false) {
+    constructor(theme, choice = 'auto') {
         super();
         this._theme = theme;
-        this._forceLight = forceLight;
+        this._choice = choice;
         theme.connectObject('changed', () => this.emit('changed'), this);
     }
 
-    setForceLight(on) {
-        if (on === this._forceLight)
+    setChoice(choice) {
+        if (choice === this._choice)
             return;
         const before = this.scheme;
-        this._forceLight = on;
+        this._choice = choice;
         if (this.scheme !== before)
             this.emit('changed');
     }
 
     get scheme() {
-        return this._forceLight ? 'light' : this._theme.scheme;
+        return this._choice === 'light' || this._choice === 'dark' ? this._choice : this._theme.scheme;
     }
 
     get colour() {

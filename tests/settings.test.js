@@ -20,9 +20,19 @@ test('symbols keep only words per app', () => equal(
 test('symbols must be an object', () => equal([parse('{"symbols": ["zen"]}').symbols, isValid('symbols', {'a.desktop': 'zen'}),
     isValid('symbols', {'a.desktop': 1}), isValid('symbolicIcons', false)], [{}, true, false, true]));
 test('look switches', () => equal(
-    [DEFAULTS.inkFocus, DEFAULTS.lightDock, DEFAULTS.longHandle, parse('{"lightDock": true, "inkFocus": 1}').lightDock,
-        parse('{"inkFocus": 1}').inkFocus, isValid('longHandle', true), isValid('longHandle', 'yes')],
-    [true, false, false, true, true, true, false]));
+    [DEFAULTS.inkFocus, DEFAULTS.longHandle, parse('{"inkFocus": 1}').inkFocus, isValid('longHandle', true), isValid('longHandle', 'yes')],
+    [true, false, true, true, false]));
+test('dock scheme', () => equal(
+    [DEFAULTS.dockScheme, parse('{"dockScheme": "dark"}').dockScheme, parse('{"dockScheme": "dim"}').dockScheme,
+        isValid('dockScheme', 'light'), isValid('dockScheme', true), 'lightDock' in DEFAULTS],
+    ['auto', 'dark', 'auto', true, false, false]));
+test('a light dock became the light scheme', () => equal(
+    [parse('{"lightDock": true}').dockScheme, parse('{"lightDock": false}').dockScheme,
+        parse('{"lightDock": true, "dockScheme": "dark"}').dockScheme],
+    ['light', 'auto', 'dark']));
+test('blur switches', () => equal(
+    [DEFAULTS.blur, DEFAULTS.blurFollow, parse('{"blur": false, "blurFollow": "yes"}').blur, parse('{"blurFollow": "yes"}').blurFollow],
+    [true, false, false, false]));
 test('handles fall back per style', () => {
     const settings = parse('{"handles": {"pebbles": false, "loud-tile": "no"}}');
     equal([settings.handles.pebbles, settings.handles['loud-tile'], settings.handles['floating-bar']], [false, true, true]);

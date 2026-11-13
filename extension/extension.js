@@ -15,6 +15,7 @@ import {Popup} from './lib/popup.js';
 import {SettingsStore} from './lib/settings.js';
 import {Status} from './lib/status.js';
 import {loadSymbols, unloadSymbols} from './lib/symbols.js';
+import {BlurMyShell} from './lib/blur.js';
 import {SchemeView, ThemeController} from './lib/theme.js';
 
 const DASH_TO_DOCK = 'dash-to-dock@micxgx.gmail.com';
@@ -28,18 +29,20 @@ export default class HarborExtension extends Extension {
         this._settings = new SettingsStore(settings => this._settingsChanged(settings));
         setMotion(this._settings.current);
         this._theme = new ThemeController(this._settings.current.colour);
-        // The dock and what it opens may stay light while the desktop is dark.
-        this._dockTheme = new SchemeView(this._theme, this._settings.current.lightDock);
+        // The dock and what it opens may keep a scheme of their own.
+        this._dockTheme = new SchemeView(this._theme, this._settings.current.dockScheme);
         this._model = new Model();
         this._places = new Places();
         this._status = new Status(this._dockTheme);
         this._power = new Power();
+        this._blur = new BlurMyShell();
         this._docks = new Docks({
             theme: this._dockTheme,
             model: this._model,
             places: this._places,
             status: this._status,
             power: this._power,
+            blur: this._blur,
             settings: () => this._settings.current,
             setSymbol: (appId, key) => this._setSymbol(appId, key),
             onState: () => this._queueRender(),
@@ -59,6 +62,8 @@ export default class HarborExtension extends Extension {
         });
         Main.extensionManager.connectObject('extension-state-changed', () => this._checkDashToDock(), this);
         this._checkDashToDock();
+        this._blur.connectObject('changed', () => this._popup.setBlurAvailable(this._blur.available), this);
+        this._popup.setBlurAvailable(this._blur.available);
         // Directly left of the system menu.
         const rightBox = Main.panel._rightBox;
         const systemMenu = Main.panel.statusArea.quickSettings?.container;
@@ -79,6 +84,9 @@ export default class HarborExtension extends Extension {
         this._idle = 0;
         this._docks.destroy();
         this._docks = null;
+        this._blur.disconnectObject(this);
+        this._blur.destroy();
+        this._blur = null;
         this._places.destroy();
         this._places = null;
         this._status.destroy();
@@ -158,7 +166,7 @@ export default class HarborExtension extends Extension {
     _settingsChanged(settings) {
         setMotion(settings);
         this._theme.setColour(settings.colour);
-        this._dockTheme.setForceLight(settings.lightDock);
+        this._dockTheme.setChoice(settings.dockScheme);
         this._popup.setSettings(settings);
         this._docks.setSettings(settings);
         this._render();

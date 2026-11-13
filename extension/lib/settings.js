@@ -24,6 +24,8 @@ export const POSITIONS = ['left', 'bottom', 'right'];
 export const ICON_SIZES = ['small', 'medium', 'large', 'huge'];
 export const WHEN_WINDOW_CLOSE = ['stay', 'make-room', 'hide'];
 export const MOTION_SPEEDS = ['quick', 'normal', 'slow'];
+// The dock's colours: as the desktop, or always light or dark.
+export const DOCK_SCHEMES = ['auto', 'light', 'dark'];
 
 // The size of an app's tile; the symbol on it is half as large.
 export const ICON_PX = {small: 40, medium: 48, large: 56, huge: 64};
@@ -35,6 +37,7 @@ const CHOICES = {
     whenWindowClose: WHEN_WINDOW_CLOSE,
     colour: COLOURS,
     motionSpeed: MOTION_SPEEDS,
+    dockScheme: DOCK_SCHEMES,
 };
 
 // Keys that hold one switch per style.
@@ -76,8 +79,12 @@ export const DEFAULTS = Object.freeze({
     symbols: Object.freeze({}),
     // The focused app's tile is black (white in dark mode), not primary.
     inkFocus: true,
-    // The dock stays light when the desktop is dark.
-    lightDock: false,
+    // The dock's colours: "auto" follows the desktop.
+    dockScheme: 'auto',
+    // Blur My Shell blurs what lies behind the bars, while it is enabled.
+    blur: true,
+    // Over the blur the bars take the opacity Blur My Shell gives windows.
+    blurFollow: false,
     // The handle at the edge is twice as long.
     longHandle: false,
     // Writes what the dock decides to the journal; not in the menu.
@@ -89,7 +96,10 @@ export function normalize(raw) {
     const source = raw !== null && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const settings = {};
     for (const [key, fallback] of Object.entries(DEFAULTS)) {
-        const value = key === 'style' ? FOLDED[source.style] ?? source.style : source[key];
+        let value = key === 'style' ? FOLDED[source.style] ?? source.style : source[key];
+        // "Light dock" was a switch before the dock had three schemes.
+        if (key === 'dockScheme' && !DOCK_SCHEMES.includes(value) && source.lightDock === true)
+            value = 'light';
         if (PER_APP.includes(key))
             settings[key] = perApp(value);
         else if (PER_STYLE.includes(key))
