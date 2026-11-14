@@ -40,7 +40,7 @@ export default async function ({extension, shot, sleep, note, moveTo, launch, se
     await sleep(500);
     report('follow off');
 
-    const dockSettings = extension._blur._dock;
+    const dockSettings = extension._blur._windows;
     dockSettings?.set_boolean('pipeline-auto-mode', true);
     set('dockScheme', 'light');
     await sleep(800);
@@ -50,7 +50,18 @@ export default async function ({extension, shot, sleep, note, moveTo, launch, se
     await sleep(800);
     report('auto mode, dark dock');
     await shot('blur-dark-dock');
+    // Liquid glass for applications reaches the dock; a window lies
+    // behind the dock so the glass has something to bend.
+    dockSettings?.set_string('pipeline-dark', 'pipeline_liquid_glass');
+    const win = global.display.list_all_windows().find(w => w.get_window_type() === 0);
+    set('whenWindowClose', 'stay');
+    win?.move_frame(true, 340, 520);
+    await sleep(1000);
+    report('liquid glass');
+    await shot('blur-liquid-glass');
     set('dockScheme', 'auto');
+    set('whenWindowClose', 'make-room');
+    win?.move_frame(true, 300, 100);
     dockSettings?.set_boolean('pipeline-auto-mode', false);
     await sleep(500);
 

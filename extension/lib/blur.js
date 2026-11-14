@@ -1,7 +1,7 @@
 // A blur behind the dock's bars, drawn by Blur My Shell while it is enabled.
 //
 // Harbor paints no blur of its own: it borrows Blur My Shell's pipeline
-// (the one chosen for Dash to Dock, whose place Harbor takes, liquid glass
+// (the one chosen for applications, as Lantern does, liquid glass
 // included) and its rounded corners. Without Blur My Shell nothing here is
 // made. This reaches into Blur My Shell's modules, which are not an API: if
 // they change shape, the blur is left out and Harbor carries on.
@@ -13,7 +13,6 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import {EventEmitter} from 'resource:///org/gnome/shell/misc/signals.js';
 
 const UUID = 'blur-my-shell@aunetx';
-const DOCK_SCHEMA = 'org.gnome.shell.extensions.blur-my-shell.dash-to-dock';
 const WINDOWS_SCHEMA = 'org.gnome.shell.extensions.blur-my-shell.applications';
 // ExtensionState.ENABLED, as Blur My Shell itself compares it.
 const ENABLED = 1;
@@ -26,7 +25,6 @@ export class BlurMyShell extends EventEmitter {
     constructor() {
         super();
         this._pipelineClass = null;
-        this._dock = null;
         this._windows = null;
         // Bumped on every change, so a slow import cannot land late.
         this._generation = 0;
@@ -42,9 +40,11 @@ export class BlurMyShell extends EventEmitter {
     }
 
     // The pipeline for a dock in "light" or "dark": Blur My Shell's own
-    // choice for Dash to Dock, per scheme when its auto mode is on.
+    // choice for applications (where liquid glass is picked), per scheme
+    // when its auto mode is on. Its Dash to Dock choice is left alone: it
+    // is a plain blur unless changed, and Dash to Dock is off anyway.
     pipelineFor(scheme) {
-        const settings = this._dock;
+        const settings = this._windows;
         if (!settings)
             return 'pipeline_default';
         if (settings.get_boolean('pipeline-auto-mode'))
@@ -95,11 +95,9 @@ export class BlurMyShell extends EventEmitter {
         if (typeof DynamicPipeline !== 'function')
             throw new Error('render/dynamic_surface.js has no DynamicPipeline');
         const source = this._schemaSource(extension);
-        this._dock = this._open(source, DOCK_SCHEMA);
         this._windows = this._open(source, WINDOWS_SCHEMA);
-        for (const key of ['pipeline', 'pipeline-auto-mode', 'pipeline-light', 'pipeline-dark'])
-            this._dock?.connectObject(`changed::${key}`, () => this.emit('changed'), this);
-        this._windows?.connectObject('changed::opacity', () => this.emit('changed'), this);
+        for (const key of ['opacity', 'pipeline', 'pipeline-auto-mode', 'pipeline-light', 'pipeline-dark'])
+            this._windows?.connectObject(`changed::${key}`, () => this.emit('changed'), this);
         this._pipelineClass = DynamicPipeline;
         this.emit('changed');
     }
@@ -120,9 +118,7 @@ export class BlurMyShell extends EventEmitter {
 
     _drop() {
         this._generation++;
-        this._dock?.disconnectObject(this);
         this._windows?.disconnectObject(this);
-        this._dock = null;
         this._windows = null;
         const had = Boolean(this._pipelineClass);
         this._pipelineClass = null;

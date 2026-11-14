@@ -116,7 +116,7 @@ With **Symbolic icons** off, the apps' own colour icons rest on the same tiles. 
 | **Ink focus** | **On**, Off | The focused app is black, in dark mode white; off, it takes the primary colour. |
 | **Dock colours** | **Auto**, Light, Dark | The scheme of the dock, its menus and tooltips. **Auto** follows the desktop; **Light** and **Dark** hold it whatever the desktop does. The top bar menu still follows the desktop. A saved `"lightDock": true` turns into **Light**. |
 | **See-through** | On, **Off** | The bars at **78 %** opacity, so the wallpaper shows through. Hidden while the dock is blurred. |
-| **Blur** | **On**, Off | Only shown while **Blur My Shell** is enabled: it blurs what lies behind the bars, with the pipeline it has for **Dash to Dock** (see [Blur My Shell](#blur-my-shell)). The bars are then at **50 %**. |
+| **Blur** | **On**, Off | Only shown while **Blur My Shell** is enabled: it blurs what lies behind the bars, with the pipeline it has for **applications** (see [Blur My Shell](#blur-my-shell)). The bars are then at **50 %**. |
 | **Blur like Blur My Shell** | On, **Off** | Only with **Blur**: the bars take the opacity Blur My Shell gives windows instead of **50 %**, followed live. |
 | **Expressive motion** | **On**, Off | Springs for appearing, going and every state; off, the dock slides as calmly as before. |
 | **Speed of motion** | Quick, **Normal**, Slow | About **350**, **500** or **700 ms** for the dock to appear; all motion follows. |
@@ -189,7 +189,7 @@ These are not settings, on purpose. If one of them is wrong for you, the fix bel
 
 ### Blur My Shell
 
-Harbor paints no blur of its own. While **Blur My Shell** is enabled, Harbor borrows its pipeline for each bar of the chosen style, with the bar's rounded corners, also while a bar spreads from its pill. The pipeline is the one Blur My Shell has for **Dash to Dock**, whose place Harbor takes: with its *auto mode* on, the light pipeline under a light dock and the dark one under a dark dock, so **Dock colours** switches it too. Styles without a bar (**Grouped block**, **Pebbles**, **Quiet handle**, **Loud tile**) get no blur.
+Harbor paints no blur of its own. While **Blur My Shell** is enabled, Harbor borrows its pipeline for each bar of the chosen style, with the bar's rounded corners, also while a bar spreads from its pill. The pipeline is the one Blur My Shell has for **applications**, as in Lantern, so a **Liquid Glass** chosen there reaches the dock; its Dash to Dock choice is left alone. With its *auto mode* on, the light pipeline under a light dock and the dark one under a dark dock, so **Dock colours** switches it too. Styles without a bar (**Grouped block**, **Pebbles**, **Quiet handle**, **Loud tile**) get no blur.
 
 Harbor imports Blur My Shell's modules from its folder at run time. They are not an API: if they change shape, the blur is left out, a line goes to the journal, and the dock carries on unblurred. Without Blur My Shell nothing of this is made.
 
@@ -214,7 +214,7 @@ Nothing else is needed: no other extension, no package, no network. **Blur My Sh
 | **Settings** | **`~/.config/harbor/settings.json`** | Every choice from the menu, and the symbols you picked. Watched, so an edit by hand takes effect at once. |
 | **Font** | **`~/.local/share/fonts/GoogleSansFlex.woff2`** | Copied by `install.sh` only if no **Google Sans Flex** is installed. |
 | **Screen colour beside the handle** | Memory only | While the handle shows, the shell's own colour picker reads **5 pixels** beside it every **1.5 s** to choose white or black. Nothing is stored or sent. |
-| **Blur My Shell's settings** | Its own schemas, read only | The pipeline for Dash to Dock and the opacity for windows, while it is enabled. |
+| **Blur My Shell's settings** | Its own schemas, read only | The pipeline and the opacity it has for applications, while it is enabled. |
 | **Unread counts, progress, music** | Session bus | Signals that apps send anyway (see [Where Status Comes From](#where-status-comes-from)). |
 
 Harbor makes no network requests and sends no notifications.
@@ -329,7 +329,7 @@ Colours come from **`extension/lib/palettes.js`**: each style is Material 3's **
 - **A tile lifts as one:** shape and symbol move together on hover and while an app starts; only the symbol moving looked loose.
 - **The handle picks its colour from the screen:** white wherever it can be seen, black on white or nearly white ground (relative luminance above **0.6**), read with the shell's own colour picker.
 - **Dock colours is a view of the theme, not a second theme:** the dock reads the same colour style with the scheme held at light or dark; the top bar menu keeps following the desktop.
-- **Blur borrowed from Blur My Shell, not painted:** its pipelines (liquid glass among them) are its own shader code; Harbor takes the one set for Dash to Dock and sizes Blur My Shell's layer itself before each frame, so a spreading bar never waits a frame for its blur.
+- **Blur borrowed from Blur My Shell, not painted:** its pipelines (liquid glass among them) are its own shader code; Harbor takes the one set for applications (where Liquid Glass is chosen; the Dash to Dock one is a plain blur) and sizes Blur My Shell's layer itself before each frame, so a spreading bar never waits a frame for its blur.
 - **Symbols shipped as files, nothing at run time:** Brand logos come from **Simple Icons** (CC0), the rest from **Material Symbols** (Apache 2.0); the build script removes their fills so the shell paints them in the tile's colour.
 - **Bars painted behind the buttons:** A bar is drawn by a stand-in on a layer below the icons, so it can spread from a pill and a focus shape can glide between it and the icons.
 - **Resting on the edge instead of a push:** A push of 100 px was hard on a touchpad; 200 ms on the last row is as hard to set off by passing by.
