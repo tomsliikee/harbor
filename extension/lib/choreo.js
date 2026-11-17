@@ -72,6 +72,21 @@ export function run(actor, length, onFrame, onDone = null) {
     return timeline;
 }
 
+// A setter that does nothing once the actor is destroyed. A track of a
+// choreography outlives the items it moves: an app that quits mid-motion
+// destroys its button, and setting its scale then only logs "already
+// disposed".
+export function whileAlive(actor, set) {
+    if (!actor._harborAlive) {
+        actor._harborAlive = true;
+        actor.connect('destroy', () => (actor._harborAlive = false));
+    }
+    return v => {
+        if (actor._harborAlive)
+            set(v);
+    };
+}
+
 function springsOf(actor) {
     if (!actor._harborSprings) {
         actor._harborSprings = new Map();

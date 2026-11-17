@@ -13,7 +13,7 @@ import * as DND from 'resource:///org/gnome/shell/ui/dnd.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 import {appMenu, move, pin, placeMenu, unpin} from './appmenu.js';
-import {SPRINGS, expressive, normal, run, spring, springShare, stretch} from './choreo.js';
+import {SPRINGS, expressive, normal, run, spring, springShare, stretch, whileAlive} from './choreo.js';
 import {debug} from './debug.js';
 import {anyOverlaps, darkOn, fromCenter} from './layout.js';
 import {mix, rgba} from './palettes.js';
@@ -999,10 +999,10 @@ export class Dock {
                 add(ghost.spread, SPREAD_AT + after, SPRINGS.spread, v => style.setSpread(ghost, Math.max(0, v)));
             const ranks = fromCenter(group.items.length);
             group.items.forEach((item, i) => {
-                add(item.scale_x, ITEMS_AT + after + ranks[i] * style.itemStep, SPRINGS.pop, v => {
+                add(item.scale_x, ITEMS_AT + after + ranks[i] * style.itemStep, SPRINGS.pop, whileAlive(item, v => {
                     const scale = Math.max(0, v);
                     item.set_scale(scale, scale);
-                });
+                }));
             });
         });
         add(style.overlay.opacity / 255, OVERLAY_AT, SPRINGS.press, v => (style.overlay.opacity = Math.round(255 * clamp(v))));
@@ -1060,7 +1060,7 @@ export class Dock {
         for (const group of groups) {
             const ranks = fromCenter(group.items.length);
             const outer = Math.max(0, ...ranks);
-            group.items.forEach((item, i) => add(item.scale_x, (outer - ranks[i]) * GO_ITEM_STEP, GO_ITEM_MS, v => item.set_scale(v, v)));
+            group.items.forEach((item, i) => add(item.scale_x, (outer - ranks[i]) * GO_ITEM_STEP, GO_ITEM_MS, whileAlive(item, v => item.set_scale(v, v))));
             for (const ghost of group.bars)
                 add(ghost.spread, GO_BARS_AT, GO_BARS_MS, v => style.setSpread(ghost, v));
         }
