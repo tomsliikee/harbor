@@ -48,26 +48,21 @@ const CHANNEL = 257;
 function apply(label, role, scale) {
     // A label that is being torn down is not styled or drawn again; building
     // attributes for it only races with its destruction.
-    if (label._harborGone)
+    if (label._harborGone || !label.clutter_text)
         return;
     const attributes = new Pango.AttrList();
-    const parts = [Pango.attr_font_desc_new(descriptionFor(role, scale))];
+    attributes.insert(Pango.attr_font_desc_new(descriptionFor(role, scale)));
     if (ROLES[role]?.tabular)
-        parts.push(Pango.attr_font_features_new('tnum=1'));
+        attributes.insert(Pango.attr_font_features_new('tnum=1'));
     // Heavy weights of the variable font are drawn without the label's own
     // colour, so the colour from the style is passed on as an attribute.
     if (label.get_stage()) {
         const color = label.get_theme_node().get_foreground_color();
-        parts.push(Pango.attr_foreground_new(
+        attributes.insert(Pango.attr_foreground_new(
             color.red * CHANNEL, color.green * CHANNEL, color.blue * CHANNEL));
     }
-    for (const part of parts)
-        attributes.insert(part);
     label.clutter_text.set_attributes(attributes);
-    // The list and its attributes stay referenced from the label for as long
-    // as the text draws with them, so the script's garbage collector cannot
-    // free them under the paint.
-    label._harborAttributes = {list: attributes, parts};
+    label._harborAttributes = attributes;
 }
 
 // Sets a role on an existing label and keeps it there: St replaces the
@@ -81,6 +76,7 @@ export function applyTextRole(label, role, scale = 1) {
         label.connect('destroy', () => {
             label._harborGone = true;
             label._harborRoleWatch = 0;
+            label._harborAttributes = null;
         });
     }
 }
