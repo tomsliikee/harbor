@@ -1,8 +1,8 @@
 // Labels set in a type role of the design system.
 //
 // St's CSS cannot reach the axes of a variable font (width, roundness,
-// slant), so the role is applied as a Pango attribute instead of through
-// the stylesheet.
+// slant), so the role is applied as a Pango font description instead of
+// through the stylesheet.
 
 import Clutter from 'gi://Clutter';
 import Pango from 'gi://Pango';
@@ -42,31 +42,22 @@ export function descriptionFor(role, scale = 1) {
     return description;
 }
 
-// Pango colour channels are 16 bit, the theme's are 8 bit.
-const CHANNEL = 257;
-
 function apply(label, role, scale) {
-    // A label that is being torn down is not styled or drawn again; building
-    // attributes for it only races with its destruction.
+    // A label that is being torn down is not styled or drawn again.
     if (label._harborGone || !label.clutter_text)
         return;
-    const attributes = new Pango.AttrList();
-    attributes.insert(Pango.attr_font_desc_new(descriptionFor(role, scale)));
+    // A font description, not an attribute list: Clutter copies it, so
+    // nothing the label draws with is owned by JS. Attribute lists built
+    // from JS were freed under the paint and crashed the shell (SIGSEGV in
+    // pango_attr_list_copy). The label keeps St's own colour this way.
+    const description = descriptionFor(role, scale);
     if (ROLES[role]?.tabular)
-        attributes.insert(Pango.attr_font_features_new('tnum=1'));
-    // Heavy weights of the variable font are drawn without the label's own
-    // colour, so the colour from the style is passed on as an attribute.
-    if (label.get_stage()) {
-        const color = label.get_theme_node().get_foreground_color();
-        attributes.insert(Pango.attr_foreground_new(
-            color.red * CHANNEL, color.green * CHANNEL, color.blue * CHANNEL));
-    }
-    label.clutter_text.set_attributes(attributes);
-    label._harborAttributes = attributes;
+        description.set_features('tnum=1');
+    label.clutter_text.set_font_description(description);
 }
 
-// Sets a role on an existing label and keeps it there: St replaces the
-// attributes whenever the style is recomputed.
+// Sets a role on an existing label and keeps it there: St sets the font
+// from the stylesheet whenever the style is recomputed.
 export function applyTextRole(label, role, scale = 1) {
     label._harborRole = {role, scale};
     apply(label, role, scale);
@@ -76,7 +67,6 @@ export function applyTextRole(label, role, scale = 1) {
         label.connect('destroy', () => {
             label._harborGone = true;
             label._harborRoleWatch = 0;
-            label._harborAttributes = null;
         });
     }
 }
